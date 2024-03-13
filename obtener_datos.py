@@ -30,7 +30,7 @@ informacion_usuario_logeado = list(df.loc[df["Correo Electrónico"] == "hectoriv
 print(informacion_usuario_logeado)
 print()
 
-df_2 = pd.read_csv("reservaciones.csv", dtype = str)
+df_2 = pd.read_csv("reservaciones_confirmadas.csv", dtype = str)
 print("HOLA")
 bicicleta = df_2["Número de Bicicleta"].iloc[0]
 print(bicicleta)
