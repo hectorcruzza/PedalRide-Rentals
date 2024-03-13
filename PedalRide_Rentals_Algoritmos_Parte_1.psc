@@ -113,8 +113,37 @@ Funcion iniciar_sesion // Función que permite al usuario iniciar sesión.
 	FinSi // Fin de la estructura si-entonces.
 FinFuncion // Fin de la función iniciar_sesión.
 
+Funcion opciones_menu_inicio // Función que muestra las opciones del menú de acceso a fin de que el usuario elija una.
+	Definir opcion_usuario Como Entero // Creación de una variable de tipo entero: opcion_usuario.
+	// Inicialización de la variable:
+	opcion_usuario = 0 // Variable que almacena la opción elegida por el usuario.
+	Escribir "- Seleccione una de las siguientes opciones:" // Impresión de un mensaje.
+	Escribir " 1-. Mi perfil." // Impresión de un mensaje.
+	Escribir " 2-. Mis reservaciones." // Impresión de un mensaje.
+	Escribir " 3-. Disponibilidad de bicicletas." // Impresión de un mensaje.
+	Escribir " 4-. Hacer una reservación."
+	Escribir " 5-. Cerrar sesión."
+	Escribir " 6-. Salir del sistema."
+	Leer opcion_usuario 
+	Segun opcion_usuario Hacer 
+		1: 
+			Escribir "Sección: Mi perfil." 
+		2: 
+			Escribir "Sección: Mis reservaciones."
+		3:
+			Escribir "Sección: Disponibilidad de bicicletas."
+		4:
+			Escribir "Sección: Hacer una reservación."
+		5:
+			Escribir "Sección: Cerrar sesión."
+		6:
+			Escribir "Sección: Salir del sistema."
+	FinSegun 
+FinFuncion 
+
 Funcion menu_inicio // Función que corresponde al menú de inicio.
-	Escribir "Sección: Menú de acceso." // Impresión de un mensaje.
+	Escribir "Sección: Menú de inicio." // Impresión de un mensaje.
+	opciones_menu_inicio
 FinFuncion // Fin de la función menu_inicio.
 
 Algoritmo PedalRide_Rentals_Algoritmos_Parte_1 // Inicio del algoritmo.
