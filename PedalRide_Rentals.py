@@ -2,18 +2,20 @@ import pandas as pd # Importación de librería para la carga de información de
 from email_validator import validate_email, EmailNotValidError # Importación de librería para la verificación de correos electrónicos
 import re # Importación de librería para la creación de regular expressions
 import datetime as dt
+import random
 
 class PedalRide_Rentals: # Creación de la clase.
-    def __init__(self, df: pd.DataFrame, df_reservaciones_confirmadas: pd.DataFrame, df_reservaciones_en_curso: pd.DataFrame): # Función de inicialización.
+    def __init__(self, df: pd.DataFrame, df_reservaciones: pd.DataFrame): # Función de inicialización.
         self.obtener_fecha_hora()
-
-        self.bicicletas = ["010", "020", "030", "040", "067"] # Inicialización de la lista de bicicletas a alquilar.
+        # Inicialización de la lista de bicicletas a alquilar, con su descripción y respectivo precio por hora.
+        self.bicicletas = {"Bicicleta de Ciudad": ["-", ["005", "010", "015"], 60],
+                           "Bicicleta de Montaña": ["-", ["020", "025", "030"], 90],
+                           "Bicicleta de Turismo": ["-", ["035", "040", "045"], 80],
+                           "Bicicleta Playera": ["-", ["050", "055", "067"], 70]} 
         self.df = df #Cargar la información de los usuarios
-        self.df_reservaciones_confirmadas = df_reservaciones_confirmadas
-        self.df_reservaciones_en_curso = df_reservaciones_en_curso
-
-        self.verificar_reservaciones_confirmadas()
-
+        self.df_reservaciones = df_reservaciones
+        self.numeros_reservacion_disponibles = set(range(1, 1001))
+        self.numeros_reservacion_disponibles.difference_update(set(self.df_reservaciones["Número de Reservación"]))
         self.nombre_usuario = None
         self.primer_apellido_usuario = None
         self.segundo_apellido_usuario = None
@@ -21,28 +23,17 @@ class PedalRide_Rentals: # Creación de la clase.
         self.correo_electronico_usuario = None
         self.contraseña_usuario = None
         self.inicio_sesion_exitoso = None
+        self.horario_trabajo = None
+        self.bicicletas_disponibles = None
         print(f"\n| Fecha: {self.fecha_actual} - Hora: {self.hora_actual} |")
         print("\n¡Bienvenido(a) al sistema de reservaciones para el servicio de alquiler de bicicletas!") # Impresión de un mensaje.
         self.menu_acceso() # Se llama a la función del menú de acceso.
+
 
     def obtener_fecha_hora(self):
         self.fecha_hora_actual_datetime = dt.datetime.now().replace(microsecond = 0)
         self.fecha_actual = self.fecha_hora_actual_datetime.strftime("%d/%m/%Y")
         self.hora_actual = self.fecha_hora_actual_datetime.strftime("%H:%M")
-
-    def verificar_reservaciones_confirmadas(self):
-        informacion_reservaciones_confirmadas = self.df_reservaciones_confirmadas[["Fecha de la Reservación", "Hora de Inicio"]].to_numpy()
-
-        for i in range(len(self.df_reservaciones_confirmadas)):
-            fecha_hora_reservacion_str = f"{informacion_reservaciones_confirmadas[i][0]} {informacion_reservaciones_confirmadas[i][1]}"
-            fecha_hora_reservacion_datetime = dt.datetime.strptime(fecha_hora_reservacion_str, "%d/%m/%Y %H:%M").replace()
-            if self.fecha_hora_actual_datetime >= fecha_hora_reservacion_datetime:
-                self.df_reservaciones_confirmadas.drop(i, inplace = True)
-                self.df_reservaciones_confirmadas.to_csv("reservaciones_confirmadas.csv", index = None)   
-                self.df_reservaciones_confirmadas = pd.read_csv("reservaciones_confirmadas.csv", dtype = str)
-
-    def verificar_reservaciones_en_curso(self):
-        pass   
 
 
     def opciones_menu_acceso(self): # Función que muestra las opciones del menú de acceso a fin de que el usuario elija una.
@@ -321,17 +312,28 @@ class PedalRide_Rentals: # Creación de la clase.
 
     def mis_reservaciones(self):
         self.obtener_fecha_hora()
-        self.verificar_reservaciones_confirmadas()
         print("\nSección: Mis reservaciones.")
         print("- Reservaciones confirmadas:\n")
 
-        reservaciones_confirmadas = self.df_reservaciones_confirmadas.loc[self.df_reservaciones_confirmadas["Correo Electrónico"] == self.correo_electronico_usuario].to_numpy()
+        reservaciones_confirmadas = self.df_reservaciones.loc[self.df_reservaciones["Correo Electrónico"] == self.correo_electronico_usuario].to_numpy()
+        reservacion_confirmada = False
+        h = 0
 
-        if len(reservaciones_confirmadas):
-            print("| N.º de Reservación |    Fecha    |    Horario    | N.º de Bicicleta |  Costo  |")
+        while not reservacion_confirmada and h < len(reservaciones_confirmadas):
+            fecha_hora_reservacion_str = f"{reservaciones_confirmadas[h][4]} {reservaciones_confirmadas[h][5]}"
+            fecha_hora_reservacion_datetime = dt.datetime.strptime(fecha_hora_reservacion_str, "%d/%m/%Y %H:%M")
+            if self.fecha_hora_actual_datetime < fecha_hora_reservacion_datetime:
+                reservacion_confirmada = True
+            h += 1
+
+        if reservacion_confirmada:
+            print("| N.º de Reservación |    Fecha    |    Horario    | N.º de Bicicleta |     Tipo de Bicicleta     |  Costo  |")
             for j in range(len(reservaciones_confirmadas)):
-                horario_reserva = f"{reservaciones_confirmadas[j][5]} - {reservaciones_confirmadas[j][6]}"
-                print("        ", reservaciones_confirmadas[j][0], "           ", reservaciones_confirmadas[j][4], "  ", horario_reserva, "       ", reservaciones_confirmadas[j][7], "         ", reservaciones_confirmadas[j][8])
+                fecha_hora_reservacion_str = f"{reservaciones_confirmadas[j][4]} {reservaciones_confirmadas[j][5]}"
+                fecha_hora_reservacion_datetime = dt.datetime.strptime(fecha_hora_reservacion_str, "%d/%m/%Y %H:%M")
+                if self.fecha_hora_actual_datetime < fecha_hora_reservacion_datetime:
+                    horario_reserva = f"{reservaciones_confirmadas[j][5]} - {reservaciones_confirmadas[j][6]}"
+                    print("        ", reservaciones_confirmadas[j][0], "         ", reservaciones_confirmadas[j][4], "  ", horario_reserva, "       ", reservaciones_confirmadas[j][7], "           ", reservaciones_confirmadas[j][8], "      ", reservaciones_confirmadas[j][9])
         else:
             print(" - No tiene ninguna reservación confirmada.")
             print()
@@ -340,7 +342,7 @@ class PedalRide_Rentals: # Creación de la clase.
 
     def opciones_hacer_reservaciones(self):
         print("- Seleccione una de las siguientes opciones con base en su número: \n") # Impresión de un mensaje.
-        if not self.bicicletas_disponibles:
+        if not self.bicicletas_disponibles or not self.horario_trabajo:
             print(" 1-. Cambiar la fecha y horario de la reservación.") # Impresión de un mensaje.
         elif not self.acuerdo_precio_usuario:   
             print(" 1-. Hacer una reservación.") # Impresión de un mensaje.
@@ -359,19 +361,21 @@ class PedalRide_Rentals: # Creación de la clase.
 
 
     def proceso_hacer_reservaciones(self):
+        self.obtener_fecha_hora()
         print(f"\n| Fecha: {self.fecha_actual} - Hora: {self.hora_actual} |\n")
         dia_actual = self.fecha_hora_actual_datetime.day
         mes_actual = self.fecha_hora_actual_datetime.month
         año_actual = self.fecha_hora_actual_datetime.year
         horas_actual = self.fecha_hora_actual_datetime.hour
         minutos_actual = self.fecha_hora_actual_datetime.minute
-        costo_reserva_por_hora = 60
 
         print("- Nuestro horario de trabajo es de las 08:00 a las 20:00.")
         print("- Las reservaciones se deben realizar para el año y mes en curso.")
         print("- Las reservaciones se realizan en bloques por hora.")
         print("- Las reservaciones pueden ser de más de una hora.")
         print("- Las reservaciones se deben realizar con al menos una hora de anticipación.\n")
+
+        self.horario_trabajo = True
 
         while True:
             fecha_reserva = input(" - Ingrese la fecha de la reservación (Formato: DD/MM/AAAA): > ")
@@ -396,6 +400,11 @@ class PedalRide_Rentals: # Creación de la clase.
                 print("El formato de la fecha ingresada no es válido. Inténtelo de nuevo.\n")
             print("- Recuerde que las reservaciones se deben realizar para el año y mes en curso.\n")
 
+        if fecha_reserva_datetime == self.fecha_hora_actual_datetime.date() and self.fecha_hora_actual_datetime.time() > dt.datetime.strptime("18:00", "%H:%M").time():
+            self.horario_trabajo = False
+            print("No es posible hacer reservaciones para el día de hoy.\n")
+            self.opciones_hacer_reservaciones()
+
         while True:
             while True:
                 hora_inicio_reserva = input(" - Ingrese la hora de inicio de la reservación (Formato de 24 horas: HH:MM): > ")
@@ -404,7 +413,6 @@ class PedalRide_Rentals: # Creación de la clase.
                     try:
                         hora_inicio_reserva_datetime = dt.datetime.strptime(hora_inicio_reserva, "%H:%M").time()
                         horas_inicio_reserva = hora_inicio_reserva_datetime.hour
-                        minutos_inicio_reserva = hora_inicio_reserva_datetime.minute
                         print()
                         break
                     except:
@@ -418,7 +426,6 @@ class PedalRide_Rentals: # Creación de la clase.
                     try:
                         hora_termino_reserva_datetime = dt.datetime.strptime(hora_termino_reserva, "%H:%M").time()
                         horas_termino_reserva = hora_termino_reserva_datetime.hour
-                        minutos_termino_reserva = hora_termino_reserva_datetime.minute
                         print()
                         break
                     except:
@@ -430,11 +437,17 @@ class PedalRide_Rentals: # Creación de la clase.
             horas_anticipacion = horas_inicio_reserva - (horas_actual + (minutos_actual / 60))
             
             if re.match(formato_hora_reservas, hora_inicio_reserva) and re.match(formato_hora_reservas, hora_termino_reserva) \
-            and horas_inicio_reserva >= 8 and horas_inicio_reserva <= 20 and horas_termino_reserva >= 8 and horas_termino_reserva <=20 \
-            and (fecha_reserva_datetime > self.fecha_hora_actual_datetime.date() or horas_anticipacion >= 1):
-                if hora_inicio_reserva_datetime < hora_termino_reserva_datetime:
-                    print()
-                    break
+            and horas_inicio_reserva >= 8 and horas_inicio_reserva <= 20 and horas_termino_reserva >= 8 and horas_termino_reserva <=20:
+                if fecha_reserva_datetime > self.fecha_hora_actual_datetime.date():
+                    if hora_inicio_reserva_datetime < hora_termino_reserva_datetime:
+                        break
+                    else:
+                        print("El horario ingresado no es válido. Inténtelo de nuevo.\n")
+                elif hora_inicio_reserva_datetime > self.fecha_hora_actual_datetime.time() and hora_inicio_reserva_datetime < hora_termino_reserva_datetime:
+                    if horas_anticipacion >= 1:
+                        break
+                    else:
+                        print("El horario ingresado no es válido. Recuerde que las reservaciones se deben hacer con al menos una hora de anticipación. Inténtelo de nuevo.\n")
                 else:
                     print("El horario ingresado no es válido. Inténtelo de nuevo.\n")
             else:
@@ -445,65 +458,74 @@ class PedalRide_Rentals: # Creación de la clase.
                 print("- Las reservaciones pueden ser de más de una hora.")
                 print("- Las reservaciones se deben realizar con al menos una hora de anticipación.\n")
 
+        informacion_reservaciones = self.df_reservaciones.to_numpy()
         self.bicicletas_disponibles = False
-        h = 0
-
+        
         # Ciclo para verificar si hay bicicletas disponibles
-        while h < len(self.bicicletas) and not self.bicicletas_disponibles:
-            self.bicicletas_disponibles = True
-            l = 0
-            while l < len(self.df_reservaciones_confirmadas) and self.bicicletas_disponibles:
-                if self.bicicletas[h] == self.df_reservaciones_confirmadas["Número de Bicicleta"].iloc[l]:
-                    container_fecha_reserva_datetime = dt.datetime.strptime(self.df_reservaciones_confirmadas["Fecha de la Reservación"].iloc[l], "%d/%m/%Y").date()
-                    container_dia_reserva = container_fecha_reserva_datetime.day
-                    container_mes_reserva = container_fecha_reserva_datetime.month
-                    container_año_reserva = container_fecha_reserva_datetime.year
-                    if container_año_reserva == año_reserva:
-                        if container_mes_reserva == mes_reserva:
-                            if container_dia_reserva == dia_reserva:
-                                container_hora_inicio = dt.datetime.strptime(self.df_reservaciones_confirmadas["Hora de Inicio"].iloc[l], "%H:%M").hour
-                                container_hora_termino = dt.datetime.strptime(self.df_reservaciones_confirmadas["Hora de Término"].iloc[l], "%H:%M").hour
-                                if horas_inicio_reserva < container_hora_termino and horas_termino_reserva > container_hora_inicio:
-                                    self.bicicletas_disponibles = False
-                l += 1
-            h += 1
+        for tipo_bicicleta in self.bicicletas.values():
+            cantidad_bicicletas_disponibles = len(tipo_bicicleta[1])
+            h = 0
+            while h < len(tipo_bicicleta[1]):
+                bicicleta_disponible = True
+                l = 0
+                while l < len(informacion_reservaciones) and bicicleta_disponible:
+                    if tipo_bicicleta[1][h] == informacion_reservaciones[l][7]:
+                        container_fecha_reserva_datetime = dt.datetime.strptime(informacion_reservaciones[l][4], "%d/%m/%Y").date()
+                        if container_fecha_reserva_datetime == fecha_reserva_datetime:
+                            container_hora_inicio_datetime = dt.datetime.strptime(informacion_reservaciones[l][5], "%H:%M").time()
+                            container_hora_termino_datetime = dt.datetime.strptime(informacion_reservaciones[l][6], "%H:%M").time()
+                            if hora_inicio_reserva_datetime < container_hora_termino_datetime and hora_termino_reserva_datetime > container_hora_inicio_datetime:
+                                bicicleta_disponible = False
+                                cantidad_bicicletas_disponibles -= 1
+                    l += 1
+                h += 1
+            if cantidad_bicicletas_disponibles:
+                self.bicicletas_disponibles = True
+                break
 
         # Si hay bicicletas disponibles, entonces se muestran y sigue el proceso de la reservación.
         if self.bicicletas_disponibles:
             print("A continuación, se muestra la lista de bicicletas disponibles en la fecha y horario elegidos:\n")
-            print("| Número de Bicicleta |")
+            print("|     Tipo de Bicicleta     |           Descripción           | Bicicletas Disponibles |   Costo   |")
 
-            lista_bicicletas_disponibles = list()
+        # Ciclo para mostrar las bicicletas disponibles
+            
+            bicicletas_disponibles = dict()
 
-            for a in range(len(self.bicicletas)):
-                bicicleta_disponible = True
-                b = 0
-                while b < len(self.df_reservaciones_confirmadas) and bicicleta_disponible:
-                    if self.bicicletas[a] == self.df_reservaciones_confirmadas["Número de Bicicleta"].iloc[b]:
-                        container_fecha_reserva_datetime = dt.datetime.strptime(self.df_reservaciones_confirmadas["Fecha de la Reservación"].iloc[b], "%d/%m/%Y").date()
-                        container_dia_reserva = container_fecha_reserva_datetime.day
-                        container_mes_reserva = container_fecha_reserva_datetime.month
-                        container_año_reserva = container_fecha_reserva_datetime.year
-                        if container_año_reserva == año_reserva:
-                            if container_mes_reserva == mes_reserva:
-                                if container_dia_reserva == dia_reserva:
-                                    container_hora_inicio = dt.datetime.strptime(self.df_reservaciones_confirmadas["Hora de Inicio"].iloc[b], "%H:%M").hour
-                                    container_hora_termino = dt.datetime.strptime(self.df_reservaciones_confirmadas["Hora de Término"].iloc[b], "%H:%M").hour
-                                    if horas_inicio_reserva < container_hora_termino and horas_termino_reserva > container_hora_inicio:
-                                        bicicleta_disponible = False
-                    b += 1
-                if bicicleta_disponible:
-                    lista_bicicletas_disponibles.append(self.bicicletas[a])
-                    print("         ", self.bicicletas[a])
+            for tipo_bicicleta, informacion_tipo_bicicleta in self.bicicletas.items():
+                cantidad_bicicletas_disponibles = len(informacion_tipo_bicicleta[1])
+                bicicletas_disponibles_por_tipo = list()
+                a = 0
+                while a < len(informacion_tipo_bicicleta[1]):
+                    bicicleta_disponible = True
+                    b = 0
+                    while b < len(informacion_reservaciones) and bicicleta_disponible:
+                        if informacion_tipo_bicicleta[1][a] == informacion_reservaciones[b][7]:
+                            container_fecha_reserva_datetime = dt.datetime.strptime(informacion_reservaciones[b][4], "%d/%m/%Y").date()
+                            if container_fecha_reserva_datetime == fecha_reserva_datetime:
+                                container_hora_inicio_datetime = dt.datetime.strptime(informacion_reservaciones[b][5], "%H:%M").time()
+                                container_hora_termino_datetime = dt.datetime.strptime(informacion_reservaciones[b][6], "%H:%M").time()
+                                if hora_inicio_reserva_datetime < container_hora_termino_datetime and hora_termino_reserva_datetime > container_hora_inicio_datetime:
+                                    bicicleta_disponible = False
+                                    cantidad_bicicletas_disponibles -= 1
+                        b += 1
+                    if bicicleta_disponible:
+                        bicicletas_disponibles_por_tipo.append(informacion_tipo_bicicleta[1][a])
+                    a += 1
+                if cantidad_bicicletas_disponibles:
+                    bicicletas_disponibles[tipo_bicicleta] = bicicletas_disponibles_por_tipo
+                    print("   ", tipo_bicicleta, "                   ", informacion_tipo_bicicleta[0], "                           ", cantidad_bicicletas_disponibles, "              ", f"${informacion_tipo_bicicleta[2]}")
+
+            print("\n", bicicletas_disponibles)
 
             while True:
-                reserva_bicicleta = input("\n - Elija la bicicleta a rentar con base en su número: > ")
-                if reserva_bicicleta in lista_bicicletas_disponibles:
+                reserva_bicicleta = input("\n - Elija la bicicleta a rentar con base en su tipo: > ")
+                if reserva_bicicleta in bicicletas_disponibles:
                     print()
                     break
-                print("El número de bicicleta ingresado no es válido. Inténtelo de nuevo.\n")
+                print("El tipo de bicicleta ingresado no es válido. Inténtelo de nuevo.")
             
-            costo_total_reserva = f"${(horas_termino_reserva - horas_inicio_reserva) * costo_reserva_por_hora}"
+            costo_total_reserva = f"${(horas_termino_reserva - horas_inicio_reserva) * self.bicicletas[reserva_bicicleta][2]}"
 
             print(f"El costo total de la reservación es de {costo_total_reserva}.")
 
@@ -518,8 +540,12 @@ class PedalRide_Rentals: # Creación de la clase.
 
             if respuesta_usuario_precio == "Sí":
                 self.acuerdo_precio_usuario = True
-                numero_reservacion = len(self.df_reservaciones_confirmadas) + 1
                 apellidos = f"{self.primer_apellido_usuario} {self.segundo_apellido_usuario}"
+
+                numero_reservacion = random.choice(list(self.numeros_reservacion_disponibles))
+                self.numeros_reservacion_disponibles.remove(numero_reservacion)
+
+                numero_bicicleta = random.choice(bicicletas_disponibles[reserva_bicicleta])
 
                 informacion_reservacion = {
                     "Número de Reservación": [numero_reservacion],
@@ -529,26 +555,41 @@ class PedalRide_Rentals: # Creación de la clase.
                     "Fecha de la Reservación": [fecha_reserva],
                     "Hora de Inicio": [hora_inicio_reserva],
                     "Hora de Término": [hora_termino_reserva],
-                    "Número de Bicicleta": [reserva_bicicleta],
+                    "Número de Bicicleta": [numero_bicicleta],
+                    "Tipo de Bicicleta": [reserva_bicicleta],
                     "Costo": [costo_total_reserva],
                     "Número de Teléfono": [self.numero_telefono_usuario]
                     }
                 
                 df_informacion_reservacion = pd.DataFrame(informacion_reservacion, dtype = str)
-                df_reservacion_modificado = pd.concat([self.df_reservaciones_confirmadas, df_informacion_reservacion])
+                df_reservacion_modificado = pd.concat([self.df_reservaciones, df_informacion_reservacion])
                 df_reservacion_modificado.reset_index()
-                df_reservacion_modificado.to_csv("reservaciones_confirmadas.csv", index = None)
-                self.df_reservaciones_confirmadas = pd.read_csv("reservaciones_confirmadas.csv", dtype = str)
+                df_reservacion_modificado.to_csv("reservaciones.csv", index = None)
+                self.df_reservaciones = pd.read_csv("reservaciones.csv", dtype = {
+                    "Número de Reservación": int,
+                    "Nombre(s)": str,
+                    "Apellidos": str,
+                    "Correo Electrónico": str,
+                    "Fecha de la Reservación": str,
+                    "Hora de Inicio": str,
+                    "Hora de Término": str,
+                    "Número de Bicicleta": str,
+                    "Tipo de Bicicleta": str,
+                    "Costo": str,
+                    "Número de Teléfono": str
+                })
 
                 horario_reserva = f"{hora_inicio_reserva} - {hora_termino_reserva}"
 
                 print("Su reservación se ha realizado con éxito.")
                 print("A continuación, se muestran los detalles de su reservación:\n")
                 print("| N.º de Reservación |       Nombre(s)       |       Apellidos       |      Fecha      |      Horario      |")
-                print("        ", numero_reservacion, "               ", self.nombre_usuario, "       ", apellidos, "       ", fecha_reserva, "     ", horario_reserva, "\n")
-                print("                                       | N.º de Bicicleta |   Costo   |")
-                print("                                              ", reserva_bicicleta, "          ", costo_total_reserva)
+                print("        ", numero_reservacion, "            ", self.nombre_usuario, "        ", apellidos, "       ", fecha_reserva, "      ", horario_reserva, "\n")
+                print("                             | N.º de Bicicleta |     Tipo de Bicicleta     |   Costo   |")
+                print("                                    ", numero_bicicleta, "            ", reserva_bicicleta, "        ", costo_total_reserva)
+
             print()
+
             self.opciones_hacer_reservaciones()
         else:
             print("No hay bicicletas disponibles para la fecha y horario elegidos.\n")
@@ -556,18 +597,27 @@ class PedalRide_Rentals: # Creación de la clase.
 
 
     def hacer_reservaciones(self):
-        self.obtener_fecha_hora()
-        self.verificar_reservaciones_confirmadas()
         print("\nSección: Hacer una reservación.")
         self.proceso_hacer_reservaciones()
 
         
 def main(): # Función main.
     df = pd.read_csv("usuarios.csv", dtype = str) # Lectura del contenido del archivo csv de los usuarios por medio de la creación de un dataframe.
-    df_reservaciones_confirmadas = pd.read_csv("reservaciones_confirmadas.csv", dtype = str)
-    df_reservaciones_en_curso = pd.read_csv("reservaciones_en_curso.csv", dtype = str)
+    df_reservaciones = pd.read_csv("reservaciones.csv", dtype = {
+        "Número de Reservación": int,
+        "Nombre(s)": str,
+        "Apellidos": str,
+        "Correo Electrónico": str,
+        "Fecha de la Reservación": str,
+        "Hora de Inicio": str,
+        "Hora de Término": str,
+        "Número de Bicicleta": str,
+        "Tipo de Bicicleta": str,
+        "Costo": str,
+        "Número de Teléfono": str
+    })
 
-    PedalRide_Rentals(df, df_reservaciones_confirmadas, df_reservaciones_en_curso) # Se crea una instancia de la clase (se pasa como argumento el dataframe del archivo csv de los usuarios).
+    PedalRide_Rentals(df, df_reservaciones) # Se crea una instancia de la clase (se pasa como argumento el dataframe del archivo csv de los usuarios).
 
 if __name__ == "__main__": # Si el programa es ejecutado desde el archivo principal, entonces:
     main() # Se ejecuta el código.
