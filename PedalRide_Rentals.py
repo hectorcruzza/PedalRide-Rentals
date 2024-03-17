@@ -8,10 +8,10 @@ class PedalRide_Rentals: # Creación de la clase.
     def __init__(self, df: pd.DataFrame, df_reservaciones: pd.DataFrame): # Función de inicialización.
         self.obtener_fecha_hora()
         # Inicialización de la lista de bicicletas a alquilar, con su descripción y respectivo precio por hora.
-        self.bicicletas = {"Bicicleta de Ciudad": ["-", ["005", "010", "015"], 60],
-                           "Bicicleta de Montaña": ["-", ["020", "025", "030"], 90],
-                           "Bicicleta de Turismo": ["-", ["035", "040", "045"], 80],
-                           "Bicicleta Playera": ["-", ["050", "055", "067"], 70]} 
+        self.bicicletas = {"Bicicleta de Ciudad": ["Urbana, práctica, ágil.", ["005", "010", "015"], 60],
+                           "Bicicleta de Montaña": ["Todo terreno, robusta.", ["020", "025", "030"], 90],
+                           "Bicicleta de Turismo": ["Largas distancias, comoda.", ["035", "040", "045"], 80],
+                           "Bicicleta Eléctrica": ["Eficiente, rápida, comoda.", ["050", "055", "067"], 100]} 
         self.df = df #Cargar la información de los usuarios
         self.df_reservaciones = df_reservaciones
         self.numeros_reservacion_disponibles = set(range(1, 1001))
@@ -23,8 +23,12 @@ class PedalRide_Rentals: # Creación de la clase.
         self.correo_electronico_usuario = None
         self.contraseña_usuario = None
         self.inicio_sesion_exitoso = None
+        self.reservacion_confirmada = None
+        self.reservacion_cancelada = None
         self.horario_trabajo = None
         self.bicicletas_disponibles = None
+        self.horario_trabajo = None
+        self.acuerdo_precio_usuario = None
         print(f"\n| Fecha: {self.fecha_actual} - Hora: {self.hora_actual} |")
         print("\n¡Bienvenido(a) al sistema de reservaciones para el servicio de alquiler de bicicletas!") # Impresión de un mensaje.
         self.menu_acceso() # Se llama a la función del menú de acceso.
@@ -66,10 +70,14 @@ class PedalRide_Rentals: # Creación de la clase.
         else:
             print(" 1-. ¿Quiere iniciar sesión?") # Impresión de un mensaje.
         print(" 2-. ¿Desea volver al menú de acceso?") # Impresión de un mensaje.
+
         opcion_usuario = input("\n> ") # Pedir al usuario que elija una opción.
         match opcion_usuario: # Un switch case que evalua el input del usuario.
-            case "1": # En caso de que haya ingresado el número 1:
+            case "1" if self.inicio_sesion_exitoso == None: # En caso de que haya ingresado el número 1:
                 self.iniciar_sesion() # Accederá a la sección para iniciar sesión.
+            case "1" if self.inicio_sesion_exitoso != None:
+                print()
+                self.proceso_inicio_sesion() 
             case "2": # En caso de que haya ingresado el número 2:
                 self.menu_acceso() 
             case _:
@@ -292,68 +300,165 @@ class PedalRide_Rentals: # Creación de la clase.
         self.opcion_mi_perfil()
 
 
+    def opciones_cancelar_reservaciones(self):
+        print("- Seleccione una de las siguientes opciones con base en su número:\n") # Impresión de un mensaje.
+        if self.reservacion_confirmada:
+            if self.reservacion_cancelada != None:
+                print(" 1-. Intentar cancelar otra reservación.") # Impresión de un mensaje.
+            else:
+                print(" 1-. Cancelar otra reservación.")
+            print(" 2-. Ver sus reservaciones confirmadas.")
+            print(" 3-. Volver al menú de inicio.")
+        else:
+            print(" 1-. Ver sus reservaciones confirmadas.")
+            print(" 2-. Volver al menú de inicio.")
+        opcion_usuario = input("\n> ") # Pedir al usuario que elija una opción.
+        match opcion_usuario: # Un switch case que evalua el input del usuario.
+            case "1" if self.reservacion_confirmada: # En caso de que haya ingresado el número 1:
+                print()
+                self.proceso_cancelar_reservaciones()
+            case "1" if not self.reservacion_confirmada:
+                self.mis_reservaciones()
+            case "2" if self.reservacion_confirmada: # En caso de que haya ingresado el número 2:
+                self.mis_reservaciones()
+            case "2" if not self.reservacion_confirmada:
+                self.menu_inicio()
+            case "3" if self.reservacion_confirmada:
+                self.menu_inicio()
+            case _:
+                print("La opción ingresada no es válida. Inténtelo de nuevo.\n")
+                self.opciones_cancelar_reservaciones()
+
+
+    def proceso_cancelar_reservaciones(self):
+        print("- Para que la cancelación sea válida, debe realizarse al menos 24 horas antes de la reservación programada.\n")
+        self.reservacion_cancelada = None
+        while True:
+            try:
+                numero_reservacion = int(input(" - Ingrese el número de la reservación que desee cancelar: > "))
+                if numero_reservacion in self.numeros_reservaciones_confirmadas:
+                    break
+                print("No se ha encontrado una reservación con ese número asignado. Inténtelo de nuevo.\n")
+            except:
+                print("El número de reservación ingresado no es válido. Inténtelo de nuevo.\n")
+        self.obtener_fecha_hora() 
+        informacion_reservacion = self.df_reservaciones.loc[self.df_reservaciones["Número de Reservación"] == numero_reservacion].to_numpy()
+        fecha_hora_reservacion_str = f"{informacion_reservacion[0][4]} {informacion_reservacion[0][5]}"
+        fecha_hora_reservacion_datetime = dt.datetime.strptime(fecha_hora_reservacion_str, "%d/%m/%Y %H:%M")
+        if self.fecha_hora_actual_datetime <= fecha_hora_reservacion_datetime - dt.timedelta(hours = 24):
+            self.numeros_reservacion_disponibles.add(numero_reservacion)
+            index_reservacion = self.df_reservaciones.loc[self.df_reservaciones["Número de Reservación"] == numero_reservacion].index
+            self.df_reservaciones.drop(index_reservacion, inplace = True)
+            self.df_reservaciones.to_csv("reservaciones.csv", index = None)
+            self.df_reservaciones = pd.read_csv("reservaciones.csv", dtype = {
+                "Número de Reservación": int,
+                "Nombre(s)": str,
+                "Apellidos": str,
+                "Correo Electrónico": str,
+                "Fecha de la Reservación": str,
+                "Hora de Inicio": str,
+                "Hora de Término": str,
+                "Número de Bicicleta": str,
+                "Tipo de Bicicleta": str,
+                "Costo": str,
+                "Número de Teléfono": str
+            })
+            print("\nLa reservación se ha cancelado.")
+            print("Se ha enviado un mensaje de cancelación al correo electrónico asociado a su cuenta.\n")
+        else:
+            self.reservacion_cancelada = False
+            print("No se pudo cancelar la reservación, ya que faltan menos de 24 horas para la misma.\n")
+        self.checar_reservaciones_confirmadas()
+        self.opciones_cancelar_reservaciones()
+
+
+    def cancelar_reservaciones(self):
+        print("\nSección: Cancelar reservación.")
+        self.proceso_cancelar_reservaciones()
+        
+
     def opciones_mis_reservaciones(self):
         print("- Seleccione una de las siguientes opciones con base en su número:\n") # Impresión de un mensaje.
         print(" 1-. Hacer una reservación.") # Impresión de un mensaje.
-        print(" 2-. Cancelar una reservación.") # Impresión de un mensaje.
-        print(" 3-. Volver al menú de inicio.") # Impresión de un mensaje.
+        if self.reservacion_confirmada:
+            print(" 2-. Cancelar una reservación.") # Impresión de un mensaje.
+            print(" 3-. Volver al menú de inicio.") # Impresión de un mensaje.
+        else:
+            print(" 2-. Volver al menú de inicio.")
         opcion_usuario = input("\n> ") # Pedir al usuario que elija una opción.
         match opcion_usuario: # Un switch case que evalua el input del usuario.
             case "1": # En caso de que haya ingresado el número 1:
                 self.hacer_reservaciones()
-            case "2": # En caso de que haya ingresado el número 2:
-                print("\nSección: Cancelar una reservación.")
-            case "3":
+            case "2" if self.reservacion_confirmada: # En caso de que haya ingresado el número 2:
+                self.cancelar_reservaciones()
+            case "2" if not self.reservacion_confirmada:
+                self.menu_inicio()
+            case "3" if self.reservacion_confirmada:
                 self.menu_inicio()
             case _:
                 print("La opción ingresada no es válida. Inténtelo de nuevo.\n")
                 self.opciones_mis_reservaciones()
+
     
+    def checar_reservaciones_confirmadas(self):
+        self.reservaciones_confirmadas = self.df_reservaciones.loc[self.df_reservaciones["Correo Electrónico"] == self.correo_electronico_usuario].to_numpy()
+        self.reservacion_confirmada = False
+        h = 0
+
+        while not self.reservacion_confirmada and h < len(self.reservaciones_confirmadas):
+            fecha_hora_reservacion_str = f"{self.reservaciones_confirmadas[h][4]} {self.reservaciones_confirmadas[h][5]}"
+            fecha_hora_reservacion_datetime = dt.datetime.strptime(fecha_hora_reservacion_str, "%d/%m/%Y %H:%M")
+            if self.fecha_hora_actual_datetime < fecha_hora_reservacion_datetime:
+                self.reservacion_confirmada = True
+            h += 1
+
+
+    def proceso_mostrar_reservaciones(self):
+        self.checar_reservaciones_confirmadas()
+        self.numeros_reservaciones_confirmadas = list()
+        if self.reservacion_confirmada:
+            print("| N.º de Reservación |    Fecha    |    Horario    | N.º de Bicicleta |     Tipo de Bicicleta     |  Costo  |")
+            for j in range(len(self.reservaciones_confirmadas)):
+                fecha_hora_reservacion_str = f"{self.reservaciones_confirmadas[j][4]} {self.reservaciones_confirmadas[j][5]}"
+                fecha_hora_reservacion_datetime = dt.datetime.strptime(fecha_hora_reservacion_str, "%d/%m/%Y %H:%M")
+                if self.fecha_hora_actual_datetime < fecha_hora_reservacion_datetime:
+                    self.numeros_reservaciones_confirmadas.append(self.reservaciones_confirmadas[j][0])
+                    horario_reserva = f"{self.reservaciones_confirmadas[j][5]} - {self.reservaciones_confirmadas[j][6]}"
+                    print("\t", self.reservaciones_confirmadas[j][0], "\t      ", self.reservaciones_confirmadas[j][4], "  ", horario_reserva, "\t   ", self.reservaciones_confirmadas[j][7], "\t ", self.reservaciones_confirmadas[j][8], "\t    ", self.reservaciones_confirmadas[j][9])
+        else:
+            print(" - No tiene ninguna reservación confirmada.")       
+        print() 
+
 
     def mis_reservaciones(self):
         self.obtener_fecha_hora()
         print("\nSección: Mis reservaciones.")
         print("- Reservaciones confirmadas:\n")
-
-        reservaciones_confirmadas = self.df_reservaciones.loc[self.df_reservaciones["Correo Electrónico"] == self.correo_electronico_usuario].to_numpy()
-        reservacion_confirmada = False
-        h = 0
-
-        while not reservacion_confirmada and h < len(reservaciones_confirmadas):
-            fecha_hora_reservacion_str = f"{reservaciones_confirmadas[h][4]} {reservaciones_confirmadas[h][5]}"
-            fecha_hora_reservacion_datetime = dt.datetime.strptime(fecha_hora_reservacion_str, "%d/%m/%Y %H:%M")
-            if self.fecha_hora_actual_datetime < fecha_hora_reservacion_datetime:
-                reservacion_confirmada = True
-            h += 1
-
-        if reservacion_confirmada:
-            print("| N.º de Reservación |    Fecha    |    Horario    | N.º de Bicicleta |     Tipo de Bicicleta     |  Costo  |")
-            for j in range(len(reservaciones_confirmadas)):
-                fecha_hora_reservacion_str = f"{reservaciones_confirmadas[j][4]} {reservaciones_confirmadas[j][5]}"
-                fecha_hora_reservacion_datetime = dt.datetime.strptime(fecha_hora_reservacion_str, "%d/%m/%Y %H:%M")
-                if self.fecha_hora_actual_datetime < fecha_hora_reservacion_datetime:
-                    horario_reserva = f"{reservaciones_confirmadas[j][5]} - {reservaciones_confirmadas[j][6]}"
-                    print("        ", reservaciones_confirmadas[j][0], "         ", reservaciones_confirmadas[j][4], "  ", horario_reserva, "       ", reservaciones_confirmadas[j][7], "           ", reservaciones_confirmadas[j][8], "      ", reservaciones_confirmadas[j][9])
-        else:
-            print(" - No tiene ninguna reservación confirmada.")
-            print()
+        self.proceso_mostrar_reservaciones()
         self.opciones_mis_reservaciones()
 
 
     def opciones_hacer_reservaciones(self):
         print("- Seleccione una de las siguientes opciones con base en su número: \n") # Impresión de un mensaje.
-        if not self.bicicletas_disponibles or not self.horario_trabajo:
-            print(" 1-. Cambiar la fecha y horario de la reservación.") # Impresión de un mensaje.
-        elif not self.acuerdo_precio_usuario:   
-            print(" 1-. Hacer una reservación.") # Impresión de un mensaje.
+        if self.horario_trabajo != None or self.bicicletas_disponibles == False or self.acuerdo_precio_usuario == False:
+            if self.horario_trabajo != None or self.bicicletas_disponibles == False :
+                print(" 1-. Cambiar la fecha y horario de la reservación.") # Impresión de un mensaje.
+            elif self.acuerdo_precio_usuario == False:   
+                print(" 1-. Hacer una reservación.") # Impresión de un mensaje.
+            print(" 2-. Volver al menú de inicio.") # Impresión de un mensaje.        
         else:
             print(" 1-. Hacer otra reservación.")
-        print(" 2-. Volver al menú de inicio.") # Impresión de un mensaje.
+            print(" 2-. Ver sus reservaciones confirmadas.")
+            print(" 3-. Volver al menú de inicio.") # Impresión de un mensaje.
         opcion_usuario = input("\n> ") # Pedir al usuario que elija una opción.
         match opcion_usuario: # Un switch case que evalua el input del usuario.
             case "1": # En caso de que haya ingresado el número 1:
                 self.proceso_hacer_reservaciones() # Accederá a la sección para iniciar sesión.
-            case "2": # En caso de que haya ingresado el número 2:
+            case "2" if self.horario_trabajo != None or self.bicicletas_disponibles == False or self.acuerdo_precio_usuario == False: # En caso de que haya ingresado el número 2:
+                self.menu_inicio()
+            case "2" if self.acuerdo_precio_usuario:
+                self.mis_reservaciones()
+            case "3" if self.acuerdo_precio_usuario:
                 self.menu_inicio()
             case _:
                 print("La opción ingresada no es válida. Inténtelo de nuevo.\n")
@@ -361,7 +466,12 @@ class PedalRide_Rentals: # Creación de la clase.
 
 
     def proceso_hacer_reservaciones(self):
+        self.horario_trabajo = None
+        self.bicicletas_disponibles = None
+        self.acuerdo_precio_usuario = None
+
         self.obtener_fecha_hora()
+
         print(f"\n| Fecha: {self.fecha_actual} - Hora: {self.hora_actual} |\n")
         dia_actual = self.fecha_hora_actual_datetime.day
         mes_actual = self.fecha_hora_actual_datetime.month
@@ -374,8 +484,6 @@ class PedalRide_Rentals: # Creación de la clase.
         print("- Las reservaciones se realizan en bloques por hora.")
         print("- Las reservaciones pueden ser de más de una hora.")
         print("- Las reservaciones se deben realizar con al menos una hora de anticipación.\n")
-
-        self.horario_trabajo = True
 
         while True:
             fecha_reserva = input(" - Ingrese la fecha de la reservación (Formato: DD/MM/AAAA): > ")
@@ -486,7 +594,7 @@ class PedalRide_Rentals: # Creación de la clase.
         # Si hay bicicletas disponibles, entonces se muestran y sigue el proceso de la reservación.
         if self.bicicletas_disponibles:
             print("A continuación, se muestra la lista de bicicletas disponibles en la fecha y horario elegidos:\n")
-            print("|     Tipo de Bicicleta     |           Descripción           | Bicicletas Disponibles |   Costo   |")
+            print("    |     Tipo de Bicicleta     |           Descripción           | Bicicletas Disponibles |   Costo por Hora   |")
 
         # Ciclo para mostrar las bicicletas disponibles
             
@@ -514,9 +622,7 @@ class PedalRide_Rentals: # Creación de la clase.
                     a += 1
                 if cantidad_bicicletas_disponibles:
                     bicicletas_disponibles[tipo_bicicleta] = bicicletas_disponibles_por_tipo
-                    print("   ", tipo_bicicleta, "                   ", informacion_tipo_bicicleta[0], "                           ", cantidad_bicicletas_disponibles, "              ", f"${informacion_tipo_bicicleta[2]}")
-
-            print("\n", bicicletas_disponibles)
+                    print("\t", tipo_bicicleta, "\t     ", informacion_tipo_bicicleta[0], "\t\t      ", cantidad_bicicletas_disponibles, "\t\t   ", f"${informacion_tipo_bicicleta[2]}")
 
             while True:
                 reserva_bicicleta = input("\n - Elija la bicicleta a rentar con base en su tipo: > ")
@@ -533,12 +639,13 @@ class PedalRide_Rentals: # Creación de la clase.
 
             while True:
                 respuesta_usuario_precio = input(" - ¿Está de acuerdo con el precio (Sí/No)? > ")
-                if respuesta_usuario_precio == "Sí" or respuesta_usuario_precio == "No":
+                respuesta_usuario_precio = respuesta_usuario_precio.strip().lower()
+                if respuesta_usuario_precio == "sí" or respuesta_usuario_precio == "si" or respuesta_usuario_precio == "no":
                     print()
                     break
                 print("La respuesta ingresada no es válida. Inténtelo de nuevo.\n")
 
-            if respuesta_usuario_precio == "Sí":
+            if respuesta_usuario_precio == "sí" or respuesta_usuario_precio == "si":
                 self.acuerdo_precio_usuario = True
                 apellidos = f"{self.primer_apellido_usuario} {self.segundo_apellido_usuario}"
 
@@ -583,21 +690,19 @@ class PedalRide_Rentals: # Creación de la clase.
 
                 print("Su reservación se ha realizado con éxito.")
                 print("A continuación, se muestran los detalles de su reservación:\n")
+
                 print("| N.º de Reservación |       Nombre(s)       |       Apellidos       |      Fecha      |      Horario      |")
-                print("        ", numero_reservacion, "            ", self.nombre_usuario, "        ", apellidos, "       ", fecha_reserva, "      ", horario_reserva, "\n")
-                print("                             | N.º de Bicicleta |     Tipo de Bicicleta     |   Costo   |")
-                print("                                    ", numero_bicicleta, "            ", reserva_bicicleta, "        ", costo_total_reserva)
-
-            print()
-
-            self.opciones_hacer_reservaciones()
+                print("\t", numero_reservacion, "\t\t ", self.nombre_usuario, "\t  ", apellidos, "\t", fecha_reserva, "\t  ", horario_reserva, "\n")
+                print("\t\t\t| N.º de Bicicleta |     Tipo de Bicicleta     |   Costo   |")
+                print("\t\t\t\t", numero_bicicleta, "\t       ", reserva_bicicleta, "\t   ", costo_total_reserva, "\n")
+                print("Se ha enviado un mensaje de confirmación al correo electrónico asociado a su cuenta.\n")
         else:
             print("No hay bicicletas disponibles para la fecha y horario elegidos.\n")
-            self.opciones_hacer_reservaciones()
+        self.opciones_hacer_reservaciones()
 
 
     def hacer_reservaciones(self):
-        print("\nSección: Hacer una reservación.")
+        print("\nSección: Hacer reservación.")
         self.proceso_hacer_reservaciones()
 
         
