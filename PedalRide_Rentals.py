@@ -8,11 +8,11 @@ class PedalRide_Rentals: # Creación de la clase.
     def __init__(self, df: pd.DataFrame, df_reservaciones: pd.DataFrame): # Función de inicialización.
         self.obtener_fecha_hora()
         # Inicialización de la lista de bicicletas a alquilar, con su descripción y respectivo precio por hora.
-        self.bicicletas = {"Bicicleta de Ciudad": ["Urbana, práctica, ágil.", ["005", "010", "015"], 60],
-                           "Bicicleta de Montaña": ["Todo terreno, robusta.", ["020", "025", "030"], 90],
-                           "Bicicleta de Turismo": ["Largas distancias, comoda.", ["035", "040", "045"], 80],
-                           "Bicicleta Eléctrica": ["Eficiente, rápida, comoda.", ["050", "055", "067"], 100]} 
-        self.df = df #Cargar la información de los usuarios
+        self.bicicletas = {"Bicicleta de Ciudad": ["Urbana, práctica.", ["005", "010", "015"], 60],
+                           "Bicicleta de Montaña": ["Todo terreno, ágil.", ["020", "025", "030"], 90],
+                           "Bicicleta de Turismo": ["Largas distancias.", ["035", "040", "045"], 80],
+                           "Bicicleta Eléctrica": ["Eficiente, rápida.", ["050", "055", "067"], 100]} 
+        self.df = df
         self.df_reservaciones = df_reservaciones
         self.numeros_reservacion_disponibles = set(range(1, 1001))
         self.numeros_reservacion_disponibles.difference_update(set(self.df_reservaciones["Número de Reservación"]))
@@ -22,9 +22,9 @@ class PedalRide_Rentals: # Creación de la clase.
         self.numero_telefono_usuario = None
         self.correo_electronico_usuario = None
         self.contraseña_usuario = None
+        self.correo_electronico_registrado = None
         self.inicio_sesion_exitoso = None
-        self.reservacion_confirmada = None
-        self.reservacion_cancelada = None
+        self.reservaciones_posible_cancelacion = None
         self.horario_trabajo = None
         self.bicicletas_disponibles = None
         self.horario_trabajo = None
@@ -83,6 +83,10 @@ class PedalRide_Rentals: # Creación de la clase.
             case _:
                 print("La opción ingresada no es válida. Inténtelo de nuevo.\n")
                 self.opciones_post_crear_cuenta()
+
+
+    def hola(self):
+        print("gola")
 
 
     def crear_cuenta(self): # Función que permite al usuario crear una cuenta.
@@ -148,10 +152,10 @@ class PedalRide_Rentals: # Creación de la clase.
             print("El número de teléfono ingresado no es válido. Inténtelo de nuevo.\n") # Impresión de un mensaje.
 
         while True: # Ciclo infinito para evaluar si el correo electrónico ingresado por el usuario es válido.
+            self.correo_electronico_registrado = None
             correo_electronico_usuario = input(" - Correo electrónico: > ") # Se solicita al usuario ingresar un correo electrónico.
             # Se remueven los espacios en blanco encontrados al inicio y al final del string del correo electrónico.
             correo_electronico_usuario = correo_electronico_usuario.strip()
-
             try: # Se intenta validar el correo electrónico.
                 # Se valida el correo electrónico y se almacena en su formato normalizado.
                 correo_electronico_usuario = validate_email(correo_electronico_usuario).email
@@ -159,52 +163,69 @@ class PedalRide_Rentals: # Creación de la clase.
                 if correo_electronico_usuario not in list(self.df["Correo Electrónico"]):
                     print()
                     break # Termina el ciclo.
-                print("El correo electrónico ingresado ya está registrado. Intente con uno distinto.\n") # Impresión de un mensaje.
+                print("El correo electrónico ingresado ya está registrado.\n") # Impresión de un mensaje.
+                self.correo_electronico_registrado = True
+                
+                while True:
+                    print("- Seleccione una de las siguientes opciones con base en su número: \n")
+                    print(" 1-. Iniciar sesión.")
+                    print(" 2-. Ingresar otro correo.")
+                    opcion_usuario = input("\n> ")
+                    if opcion_usuario == "1" or opcion_usuario == "2":
+                        break
+                    print("La opción ingresada no es válida. Inténtelo de nuevo.\n")
+
+                if opcion_usuario == "1":
+                    break
+                print()
             except EmailNotValidError: # Si no es válido el correo electrónico, ocurre un error.
                 print("El correo electrónico ingresado no es válido. Inténtelo de nuevo.\n") # Impresión de un mensaje.
 
-        print(" - Elija una contraseña para su cuenta.") # Impresión de un mensaje.
+        if not self.correo_electronico_registrado:
+            print(" - Elija una contraseña para su cuenta.") # Impresión de un mensaje.
 
-        print("  - La contraseña debe incluir: ") # Impresión de un mensaje.
-        print("   - Al menos ocho caracteres.") # Impresión de un mensaje.
-        print("   - Al menos una letra y una letra mayúscula.") # Impresión de un mensaje.
-        print("   - Al menos un número.") # Impresión de un mensaje.
-        print("   - Al menos un caracter que no sea una letra ni un número.") # Impresión de un mensaje.
-        print("  - Además: ") # Impresión de un mensaje.
-        print("   - No debe incluir espacios y letras acentuadas.") # Impresión de un mensaje.
-        print("   - No puede ser idéntica a la dirección de correo electrónico.\n") # Impresión de un mensaje.
+            print("  - La contraseña debe incluir: ") # Impresión de un mensaje.
+            print("   - Al menos ocho caracteres.") # Impresión de un mensaje.
+            print("   - Al menos una letra y una letra mayúscula.") # Impresión de un mensaje.
+            print("   - Al menos un número.") # Impresión de un mensaje.
+            print("   - Al menos un caracter que no sea una letra ni un número.") # Impresión de un mensaje.
+            print("  - Además: ") # Impresión de un mensaje.
+            print("   - No debe incluir espacios y letras acentuadas.") # Impresión de un mensaje.
+            print("   - No puede ser idéntica a la dirección de correo electrónico.\n") # Impresión de un mensaje.
 
-        while True: # Ciclo infinito para evaluar si la contraseña ingresada por el usuario es válida.
-            contraseña_usuario = input(" - Contraseña: > ") # Se solicita al usuario ingresar una contraseña.
-            # Se remueven los espacios en blanco encontrados al inicio y al final del string de la contraseña.
-            contraseña_usuario = contraseña_usuario.strip()
-            regex = r"^(?=.*[a-zA-Z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s])(?!.*[áéíóúüñ\s]).{8,}$" # Regular expression para verificar que la contraseña cumpla con las condiciones mencionadas.
-            if re.match(regex, contraseña_usuario) and contraseña_usuario != correo_electronico_usuario: #Si la contraseña cumple con las condiciones mencionadas, entonces:
-                break # Termina el ciclo.
-            print("La contraseña ingresada no cumple con las especificaciones mencionadas. Inténtelo de nuevo.\n") # Impresión de un mensaje.
+            while True: # Ciclo infinito para evaluar si la contraseña ingresada por el usuario es válida.
+                contraseña_usuario = input(" - Contraseña: > ") # Se solicita al usuario ingresar una contraseña.
+                # Se remueven los espacios en blanco encontrados al inicio y al final del string de la contraseña.
+                contraseña_usuario = contraseña_usuario.strip()
+                regex = r"^(?=.*[a-zA-Z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s])(?!.*[áéíóúüñ\s]).{8,}$" # Regular expression para verificar que la contraseña cumpla con las condiciones mencionadas.
+                if re.match(regex, contraseña_usuario) and contraseña_usuario != correo_electronico_usuario: #Si la contraseña cumple con las condiciones mencionadas, entonces:
+                    break # Termina el ciclo.
+                print("La contraseña ingresada no cumple con las especificaciones mencionadas. Inténtelo de nuevo.\n") # Impresión de un mensaje.
 
-        # Almacenar la información del usuario registrado en un diccionario para su posterior carga en el archivo csv de los usuarios.
-        informacion_usuario = {
-            "Nombre(s)": [nombre_usuario], # Nombre(s).
-            "Primer Apellido": [primer_apellido_usuario], # Primer apellido.
-            "Segundo Apellido": [segundo_apellido_usuario], # Segundo apellido.
-            "Número de Teléfono": [numero_telefono_usuario], # Número de teléfono.
-            "Correo Electrónico": [correo_electronico_usuario], # Correo electrónico.
-            "Contraseña": [contraseña_usuario] # Contraseña.
-            }
+            # Almacenar la información del usuario registrado en un diccionario para su posterior carga en el archivo csv de los usuarios.
+            informacion_usuario = {
+                "Nombre(s)": [nombre_usuario], # Nombre(s).
+                "Primer Apellido": [primer_apellido_usuario], # Primer apellido.
+                "Segundo Apellido": [segundo_apellido_usuario], # Segundo apellido.
+                "Número de Teléfono": [numero_telefono_usuario], # Número de teléfono.
+                "Correo Electrónico": [correo_electronico_usuario], # Correo electrónico.
+                "Contraseña": [contraseña_usuario] # Contraseña.
+                }
+            
+            df_informacion_usuario = pd.DataFrame(informacion_usuario, dtype = str) # Convertir el diccionario con la información del usuario registrado a un dataframe.
+            # Se crea un nuevo dataframe concatenando el dataframe que contiene la información del usuario registrado con el dataframe del csv de los usuarios.
+            df_modificado = pd.concat([self.df, df_informacion_usuario], ignore_index = True) 
+            df_modificado.reset_index() # Se resetean los index del nuevo dataframe.
+            df_modificado.to_csv("usuarios.csv", index = None) # Se guarda el nuevo dataframe en el archivo csv de los usuarios (se sobrescribe el contenido).
+            self.df = pd.read_csv("usuarios.csv", dtype = str) # Se vuelve a leer el contenido del archivo csv de los usuarios.
+
+            print("\nEl registro ha sido exitoso.\n") # Impresión de un mensaje.
+
+            self.opciones_post_crear_cuenta() # Se muestran las opciones que puede elegir el usuario después de haber creado su cuenta.
+        else:
+            self.iniciar_sesion()
         
-        df_informacion_usuario = pd.DataFrame(informacion_usuario, dtype = str) # Convertir el diccionario con la información del usuario registrado a un dataframe.
-        # Se crea un nuevo dataframe concatenando el dataframe que contiene la información del usuario registrado con el dataframe del csv de los usuarios.
-        df_modificado = pd.concat([self.df, df_informacion_usuario], ignore_index = True) 
-        df_modificado.reset_index() # Se resetean los index del nuevo dataframe.
-        df_modificado.to_csv("usuarios.csv", index = None) # Se guarda el nuevo dataframe en el archivo csv de los usuarios (se sobrescribe el contenido).
-        self.df = pd.read_csv("usuarios.csv", dtype = str) # Se vuelve a leer el contenido del archivo csv de los usuarios.
 
-        print("\nEl registro ha sido exitoso.\n") # Impresión de un mensaje.
-
-        self.opciones_post_crear_cuenta() # Se muestran las opciones que puede elegir el usuario después de haber creado su cuenta.
-
-    
     def proceso_inicio_sesion(self):
         self.inicio_sesion_exitoso = None
         print("- Ingrese el correo electrónico y contraseña de su cuenta:\n") # Impresión de un mensaje.
@@ -239,10 +260,9 @@ class PedalRide_Rentals: # Creación de la clase.
         print("- Seleccione una de las siguientes opciones con base en su número:\n") # Impresión de un mensaje.
         print(" 1-. Mi perfil.") # Impresión de un mensaje.
         print(" 2-. Mis reservaciones.") # Impresión de un mensaje.
-        print(" 3-. Disponibilidad de bicicletas.") # Impresión de un mensaje.
-        print(" 4-. Hacer una reservación.") # Impresión de un mensaje.
-        print(" 5-. Cerrar sesión.") # Impresión de un mensaje.
-        print(" 6-. Salir del sistema.") # Impresión de un mensaje.
+        print(" 3-. Hacer una reservación.") # Impresión de un mensaje.
+        print(" 4-. Cerrar sesión.") # Impresión de un mensaje.
+        print(" 5-. Salir del sistema.") # Impresión de un mensaje.
         opcion_usuario = input("\n> ") # Pedir al usuario que elija una opción.
         match opcion_usuario: # Un switch case que evalua el input del usuario.
             case "1": # En caso de que haya ingresado el número 1:
@@ -250,18 +270,16 @@ class PedalRide_Rentals: # Creación de la clase.
             case "2": # En caso de que haya ingresado el número 2:
                 self.mis_reservaciones()
             case "3":
-                print("\nSección: Disponibilidad de bicicletas.")
-            case "4":
                 self.hacer_reservaciones()
-            case "5":
+            case "4":
                 self.nombre_usuario = None
                 self.primer_apellido_usuario = None
                 self.segundo_apellido_usuario = None
                 self.numero_telefono_usuario = None
                 self.correo_electronico_usuario = None
                 self.contraseña_usuario = None
-                self.menu_acceso()
-            case "6":
+                self.menu_acceso()                
+            case "5":
                 print(f"\nGracias {self.nombre_usuario} por usar nuestro sistema..")
             case _:
                 print("La opción ingresada no es válida. Inténtelo de nuevo.\n")
@@ -284,7 +302,7 @@ class PedalRide_Rentals: # Creación de la clase.
                 self.menu_inicio()
             case _:
                 print("La opción ingresada no es válida. Inténtelo de nuevo.\n")
-                self.opciones_mis_reservaciones()
+                self.opcion_mi_perfil()
 
 
     def mi_perfil(self):
@@ -296,17 +314,13 @@ class PedalRide_Rentals: # Creación de la clase.
         print(f" - Número de teléfono: {self.numero_telefono_usuario}")
         print(f" - Correo electrónico: {self.correo_electronico_usuario}")
         print(f" - Contraseña: {self.contraseña_usuario}\n")
-
         self.opcion_mi_perfil()
 
 
     def opciones_cancelar_reservaciones(self):
         print("- Seleccione una de las siguientes opciones con base en su número:\n") # Impresión de un mensaje.
-        if self.reservacion_confirmada:
-            if self.reservacion_cancelada != None:
-                print(" 1-. Intentar cancelar otra reservación.") # Impresión de un mensaje.
-            else:
-                print(" 1-. Cancelar otra reservación.")
+        if self.numeros_reservaciones_posible_cancelacion and self.reservaciones_posible_cancelacion == None:
+            print(" 1-. Cancelar otra reservación.")
             print(" 2-. Ver sus reservaciones confirmadas.")
             print(" 3-. Volver al menú de inicio.")
         else:
@@ -314,40 +328,47 @@ class PedalRide_Rentals: # Creación de la clase.
             print(" 2-. Volver al menú de inicio.")
         opcion_usuario = input("\n> ") # Pedir al usuario que elija una opción.
         match opcion_usuario: # Un switch case que evalua el input del usuario.
-            case "1" if self.reservacion_confirmada: # En caso de que haya ingresado el número 1:
-                print()
+            case "1" if self.numeros_reservaciones_posible_cancelacion and self.reservaciones_posible_cancelacion == None: # En caso de que haya ingresado el número 1:
                 self.proceso_cancelar_reservaciones()
-            case "1" if not self.reservacion_confirmada:
+            case "1" if not self.numeros_reservaciones_posible_cancelacion or self.reservaciones_posible_cancelacion != None:
                 self.mis_reservaciones()
-            case "2" if self.reservacion_confirmada: # En caso de que haya ingresado el número 2:
+            case "2" if self.numeros_reservaciones_posible_cancelacion and self.reservaciones_posible_cancelacion == None: # En caso de que haya ingresado el número 2:
                 self.mis_reservaciones()
-            case "2" if not self.reservacion_confirmada:
+            case "2" if not self.numeros_reservaciones_posible_cancelacion or self.reservaciones_posible_cancelacion != None:
                 self.menu_inicio()
-            case "3" if self.reservacion_confirmada:
+            case "3" if self.numeros_reservaciones_posible_cancelacion and self.reservaciones_posible_cancelacion == None:
                 self.menu_inicio()
             case _:
                 print("La opción ingresada no es válida. Inténtelo de nuevo.\n")
                 self.opciones_cancelar_reservaciones()
 
 
+    def checar_reservaciones_posible_cancelacion(self):
+        self.obtener_fecha_hora()
+        self.numeros_reservaciones_posible_cancelacion = [reservacion_confirmada[0] for reservacion_confirmada in self.reservaciones_confirmadas if self.fecha_hora_actual_datetime <= dt.datetime.strptime(f"{reservacion_confirmada[4]} {reservacion_confirmada[5]}", "%d/%m/%Y %H:%M") - dt.timedelta(hours = 24)]
+
+
     def proceso_cancelar_reservaciones(self):
-        print("- Para que la cancelación sea válida, debe realizarse al menos 24 horas antes de la reservación programada.\n")
-        self.reservacion_cancelada = None
-        while True:
-            try:
-                numero_reservacion = int(input(" - Ingrese el número de la reservación que desee cancelar: > "))
-                if numero_reservacion in self.numeros_reservaciones_confirmadas:
-                    break
-                print("No se ha encontrado una reservación con ese número asignado. Inténtelo de nuevo.\n")
-            except:
-                print("El número de reservación ingresado no es válido. Inténtelo de nuevo.\n")
-        self.obtener_fecha_hora() 
-        informacion_reservacion = self.df_reservaciones.loc[self.df_reservaciones["Número de Reservación"] == numero_reservacion].to_numpy()
-        fecha_hora_reservacion_str = f"{informacion_reservacion[0][4]} {informacion_reservacion[0][5]}"
-        fecha_hora_reservacion_datetime = dt.datetime.strptime(fecha_hora_reservacion_str, "%d/%m/%Y %H:%M")
-        if self.fecha_hora_actual_datetime <= fecha_hora_reservacion_datetime - dt.timedelta(hours = 24):
-            self.numeros_reservacion_disponibles.add(numero_reservacion)
-            index_reservacion = self.df_reservaciones.loc[self.df_reservaciones["Número de Reservación"] == numero_reservacion].index
+        self.checar_reservaciones_confirmadas()
+        self.checar_reservaciones_posible_cancelacion()
+        self.reservaciones_posible_cancelacion = None
+        if self.numeros_reservaciones_posible_cancelacion:
+            print("\nLas siguientes reservaciones pueden ser canceladas:\n")
+            print("| N.º de Reservación |")
+            for numero_reservacion in self.numeros_reservaciones_posible_cancelacion:
+                print(f"\t {numero_reservacion}")
+
+            while True:
+                try:
+                    numero_reservacion_usuario = int(input("\n- Ingrese el número de la reservación que desee cancelar: > "))
+                    if numero_reservacion_usuario in self.numeros_reservaciones_posible_cancelacion:
+                        break
+                    print("No se ha encontrado una reservación que se pueda cancelar con ese número asignado. Inténtelo de nuevo.")
+                except ValueError:
+                    print("El número de reservación ingresado no es válido. Inténtelo de nuevo.")
+
+            self.numeros_reservacion_disponibles.add(numero_reservacion_usuario)
+            index_reservacion = self.df_reservaciones.loc[self.df_reservaciones["Número de Reservación"] == numero_reservacion_usuario].index
             self.df_reservaciones.drop(index_reservacion, inplace = True)
             self.df_reservaciones.to_csv("reservaciones.csv", index = None)
             self.df_reservaciones = pd.read_csv("reservaciones.csv", dtype = {
@@ -363,12 +384,14 @@ class PedalRide_Rentals: # Creación de la clase.
                 "Costo": str,
                 "Número de Teléfono": str
             })
+
             print("\nLa reservación se ha cancelado.")
             print("Se ha enviado un mensaje de cancelación al correo electrónico asociado a su cuenta.\n")
+            self.checar_reservaciones_confirmadas()
+            self.checar_reservaciones_posible_cancelacion()
         else:
-            self.reservacion_cancelada = False
-            print("No se pudo cancelar la reservación, ya que faltan menos de 24 horas para la misma.\n")
-        self.checar_reservaciones_confirmadas()
+            self.reservaciones_posible_cancelacion = False
+            print("\nNinguna reservación puede ser cancelada.\n")
         self.opciones_cancelar_reservaciones()
 
 
@@ -380,7 +403,7 @@ class PedalRide_Rentals: # Creación de la clase.
     def opciones_mis_reservaciones(self):
         print("- Seleccione una de las siguientes opciones con base en su número:\n") # Impresión de un mensaje.
         print(" 1-. Hacer una reservación.") # Impresión de un mensaje.
-        if self.reservacion_confirmada:
+        if self.reservaciones_confirmadas:
             print(" 2-. Cancelar una reservación.") # Impresión de un mensaje.
             print(" 3-. Volver al menú de inicio.") # Impresión de un mensaje.
         else:
@@ -389,45 +412,32 @@ class PedalRide_Rentals: # Creación de la clase.
         match opcion_usuario: # Un switch case que evalua el input del usuario.
             case "1": # En caso de que haya ingresado el número 1:
                 self.hacer_reservaciones()
-            case "2" if self.reservacion_confirmada: # En caso de que haya ingresado el número 2:
+            case "2" if self.reservaciones_confirmadas: # En caso de que haya ingresado el número 2:
                 self.cancelar_reservaciones()
-            case "2" if not self.reservacion_confirmada:
+            case "2" if not self.reservaciones_confirmadas:
                 self.menu_inicio()
-            case "3" if self.reservacion_confirmada:
+            case "3" if self.reservaciones_confirmadas:
                 self.menu_inicio()
             case _:
                 print("La opción ingresada no es válida. Inténtelo de nuevo.\n")
                 self.opciones_mis_reservaciones()
 
-    
-    def checar_reservaciones_confirmadas(self):
-        self.reservaciones_confirmadas = self.df_reservaciones.loc[self.df_reservaciones["Correo Electrónico"] == self.correo_electronico_usuario].to_numpy()
-        self.reservacion_confirmada = False
-        h = 0
 
-        while not self.reservacion_confirmada and h < len(self.reservaciones_confirmadas):
-            fecha_hora_reservacion_str = f"{self.reservaciones_confirmadas[h][4]} {self.reservaciones_confirmadas[h][5]}"
-            fecha_hora_reservacion_datetime = dt.datetime.strptime(fecha_hora_reservacion_str, "%d/%m/%Y %H:%M")
-            if self.fecha_hora_actual_datetime < fecha_hora_reservacion_datetime:
-                self.reservacion_confirmada = True
-            h += 1
+    def checar_reservaciones_confirmadas(self):
+        reservaciones = self.df_reservaciones.loc[self.df_reservaciones["Correo Electrónico"] == self.correo_electronico_usuario].to_numpy().tolist()
+        reservaciones.sort(key = lambda elemento: (dt.datetime.strptime(elemento[4], "%d/%m/%Y").date(), dt.datetime.strptime(elemento[5], "%H:%M").time()))
+        self.reservaciones_confirmadas = [reservacion for reservacion in reservaciones if self.fecha_hora_actual_datetime < dt.datetime.strptime(f"{reservacion[4]} {reservacion[5]}", "%d/%m/%Y %H:%M")]
 
 
     def proceso_mostrar_reservaciones(self):
         self.checar_reservaciones_confirmadas()
-        self.numeros_reservaciones_confirmadas = list()
-        if self.reservacion_confirmada:
+        if self.reservaciones_confirmadas:
             print("| N.º de Reservación |    Fecha    |    Horario    | N.º de Bicicleta |     Tipo de Bicicleta     |  Costo  |")
-            for j in range(len(self.reservaciones_confirmadas)):
-                fecha_hora_reservacion_str = f"{self.reservaciones_confirmadas[j][4]} {self.reservaciones_confirmadas[j][5]}"
-                fecha_hora_reservacion_datetime = dt.datetime.strptime(fecha_hora_reservacion_str, "%d/%m/%Y %H:%M")
-                if self.fecha_hora_actual_datetime < fecha_hora_reservacion_datetime:
-                    self.numeros_reservaciones_confirmadas.append(self.reservaciones_confirmadas[j][0])
-                    horario_reserva = f"{self.reservaciones_confirmadas[j][5]} - {self.reservaciones_confirmadas[j][6]}"
-                    print("\t", self.reservaciones_confirmadas[j][0], "\t      ", self.reservaciones_confirmadas[j][4], "  ", horario_reserva, "\t   ", self.reservaciones_confirmadas[j][7], "\t ", self.reservaciones_confirmadas[j][8], "\t    ", self.reservaciones_confirmadas[j][9])
+            for reservacion_confirmada in self.reservaciones_confirmadas:
+                print("\t", reservacion_confirmada[0], "\t      ", reservacion_confirmada[4], "  ", f"{reservacion_confirmada[5]} - {reservacion_confirmada[6]}", "\t   ", reservacion_confirmada[7], "\t ", reservacion_confirmada[8], "\t    ", reservacion_confirmada[9])
         else:
-            print(" - No tiene ninguna reservación confirmada.")       
-        print() 
+            print(" - No tiene ninguna reservación confirmada.")
+        print()
 
 
     def mis_reservaciones(self):
@@ -594,10 +604,11 @@ class PedalRide_Rentals: # Creación de la clase.
         # Si hay bicicletas disponibles, entonces se muestran y sigue el proceso de la reservación.
         if self.bicicletas_disponibles:
             print("A continuación, se muestra la lista de bicicletas disponibles en la fecha y horario elegidos:\n")
-            print("    |     Tipo de Bicicleta     |           Descripción           | Bicicletas Disponibles |   Costo por Hora   |")
+            print("      |     Tipo de Bicicleta     |         Descripción         | Bicicletas Disponibles |   Costo por Hora   |")
 
         # Ciclo para mostrar las bicicletas disponibles
             
+            opcion_por_tipo_bicicleta = 0
             bicicletas_disponibles = dict()
 
             for tipo_bicicleta, informacion_tipo_bicicleta in self.bicicletas.items():
@@ -621,16 +632,19 @@ class PedalRide_Rentals: # Creación de la clase.
                         bicicletas_disponibles_por_tipo.append(informacion_tipo_bicicleta[1][a])
                     a += 1
                 if cantidad_bicicletas_disponibles:
-                    bicicletas_disponibles[tipo_bicicleta] = bicicletas_disponibles_por_tipo
-                    print("\t", tipo_bicicleta, "\t     ", informacion_tipo_bicicleta[0], "\t\t      ", cantidad_bicicletas_disponibles, "\t\t   ", f"${informacion_tipo_bicicleta[2]}")
+                    opcion_por_tipo_bicicleta += 1
+                    bicicletas_disponibles[str(opcion_por_tipo_bicicleta)] = {tipo_bicicleta: bicicletas_disponibles_por_tipo}
+                    print("\t", f"{opcion_por_tipo_bicicleta}-. {tipo_bicicleta}", "\t", informacion_tipo_bicicleta[0], "\t\t    ", cantidad_bicicletas_disponibles, "\t\t         ", f"${informacion_tipo_bicicleta[2]}")
 
             while True:
-                reserva_bicicleta = input("\n - Elija la bicicleta a rentar con base en su tipo: > ")
-                if reserva_bicicleta in bicicletas_disponibles:
+                opcion_usuario = input("\n - Elija la bicicleta a rentar con base en su número de tipo: > ")
+                if opcion_usuario in bicicletas_disponibles:
                     print()
                     break
-                print("El tipo de bicicleta ingresado no es válido. Inténtelo de nuevo.")
+                print("El número de tipo de bicicleta ingresado no es válido. Inténtelo de nuevo.")
             
+            reserva_bicicleta = [*bicicletas_disponibles[opcion_usuario]][0]
+
             costo_total_reserva = f"${(horas_termino_reserva - horas_inicio_reserva) * self.bicicletas[reserva_bicicleta][2]}"
 
             print(f"El costo total de la reservación es de {costo_total_reserva}.")
@@ -652,7 +666,7 @@ class PedalRide_Rentals: # Creación de la clase.
                 numero_reservacion = random.choice(list(self.numeros_reservacion_disponibles))
                 self.numeros_reservacion_disponibles.remove(numero_reservacion)
 
-                numero_bicicleta = random.choice(bicicletas_disponibles[reserva_bicicleta])
+                numero_bicicleta = random.choice(bicicletas_disponibles[opcion_usuario][reserva_bicicleta])
 
                 informacion_reservacion = {
                     "Número de Reservación": [numero_reservacion],
