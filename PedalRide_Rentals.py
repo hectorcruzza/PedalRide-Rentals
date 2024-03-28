@@ -2,7 +2,12 @@ import pandas as pd # Importación de librería para la carga de información de
 from email_validator import validate_email, EmailNotValidError # Importación de librería para la verificación de correos electrónicos
 import re # Importación de librería para la creación de regular expressions
 import datetime as dt
+import requests
 import random
+import datos_correo as dc
+from email.message import EmailMessage
+import ssl
+import smtplib
 
 class PedalRide_Rentals: # Creación de la clase.
     def __init__(self, df: pd.DataFrame, df_reservaciones: pd.DataFrame): # Función de inicialización.
@@ -23,6 +28,8 @@ class PedalRide_Rentals: # Creación de la clase.
         self.correo_electronico_usuario = None
         self.contraseña_usuario = None
         self.correo_electronico_registrado = None
+        self.intento_envio_codigo_verificacion = None
+        self.problema_verificacion_correo = None
         self.inicio_sesion_exitoso = None
         self.reservaciones_posible_cancelacion = None
         self.horario_trabajo = None
@@ -79,14 +86,133 @@ class PedalRide_Rentals: # Creación de la clase.
                 print()
                 self.proceso_inicio_sesion() 
             case "2": # En caso de que haya ingresado el número 2:
-                self.menu_acceso() 
+                self.menu_acceso()
             case _:
                 print("La opción ingresada no es válida. Inténtelo de nuevo.\n")
                 self.opciones_post_crear_cuenta()
 
+    
+    def enviar_codigo_verificacion(self):
+        self.codigo_verificacion = str(random.randint(100000, 999999))
 
-    def hola(self):
-        print("gola")
+        mensaje_codigo_verificacion = EmailMessage()
+        mensaje_codigo_verificacion["From"] = dc.correo_remitente
+        mensaje_codigo_verificacion["To"] = self.correo_electronico_registro
+        mensaje_codigo_verificacion["Subject"] = f"PedalRide Rentals - Código de Verificación de Cuenta: {self.codigo_verificacion}"
+
+        cuerpo_texto_plano = """
+        PedalRide Rentals
+
+        
+        Verifica tu cuenta
+        
+        Ingresa el siguiente código para verificar tu cuenta:
+
+        {}
+
+        Este código es válido durante la ejecución del programa.
+        """
+
+        mensaje_codigo_verificacion.set_content(cuerpo_texto_plano.format(self.codigo_verificacion))
+
+        cuerpo_html = """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <link rel="preconnect" href="https://fonts.googleapis.com">
+            <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+            <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital@0;1&display=swap" rel="stylesheet">
+            <style>
+                body {{
+                    font-family: "Montserrat", sans-serif;
+                    margin: 0;
+                    padding: 0;
+                    line-height: 1.6;
+                    color: #313030;
+                }}
+
+                .container {{
+                    max-width: 600px;
+                    margin: auto;
+                    background: white;
+                    padding: 20px;
+                }}
+
+                .header {{
+                    background-color: #414141;
+                    color: white;
+                    text-align: center;
+                    padding: 40px;
+                    font-size: 30px;
+                    font-weight: bold;
+                }}
+
+                .divider {{
+                    border-top: 2px solid #dbdbdb;
+                    margin: 20px 0;
+                }}
+
+                .code {{
+                    text-align: center;
+                    font-size: 36px;
+                    margin: 20px 0;
+                    padding: 3px;
+                    background-color: #f2f2f2;
+                    font-weight: bold;
+                    border-radius: 5px;
+                    display: block;
+                    max-width: 200px;
+                    margin: 20px auto;
+                }}
+
+                h3 {{
+                    font-size: 25px;
+                    text-align: center;
+                    margin: 20px 0;
+                }}
+
+                p {{
+                    text-align: justify;
+                    font-size: 18px;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    PedalRide Rentals
+                </div>
+                
+                <h3>Verifica tu cuenta</h3>
+                
+                <div class="divider"></div>
+
+                <p>
+                    Ingresa el siguiente código para verificar tu cuenta:
+                </p>
+
+                <div class="code">
+                    {}
+                </div>
+
+                <p>
+                    Este código es válido durante la ejecución del programa.
+                </p>
+            </div>
+        </body>
+        """
+
+        mensaje_codigo_verificacion.add_alternative(cuerpo_html.format(self.codigo_verificacion), subtype = "html")
+
+        contexto = ssl.create_default_context()
+
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465, context = contexto) as smtp:
+            smtp.login(dc.correo_remitente, dc.contraseña_correo)
+            smtp.send_message(mensaje_codigo_verificacion)
+
+        if self.intento_envio_codigo_verificacion:
+            print("\nSe ha enviado un nuevo código de verificación.\n")
+            self.intento_envio_codigo_verificacion = None
 
 
     def crear_cuenta(self): # Función que permite al usuario crear una cuenta.
@@ -153,77 +279,111 @@ class PedalRide_Rentals: # Creación de la clase.
 
         while True: # Ciclo infinito para evaluar si el correo electrónico ingresado por el usuario es válido.
             self.correo_electronico_registrado = None
-            correo_electronico_usuario = input(" - Correo electrónico: > ") # Se solicita al usuario ingresar un correo electrónico.
+            self.correo_electronico_registro = input(" - Correo electrónico: > ") # Se solicita al usuario ingresar un correo electrónico.
             # Se remueven los espacios en blanco encontrados al inicio y al final del string del correo electrónico.
-            correo_electronico_usuario = correo_electronico_usuario.strip()
+            self.correo_electronico_registro = self.correo_electronico_registro.strip()
             try: # Se intenta validar el correo electrónico.
                 # Se valida el correo electrónico y se almacena en su formato normalizado.
-                correo_electronico_usuario = validate_email(correo_electronico_usuario).email
-                # Si el correo electrónico ingresado no está registrado, entonces:
-                if correo_electronico_usuario not in list(self.df["Correo Electrónico"]):
-                    print()
-                    break # Termina el ciclo.
-                print("El correo electrónico ingresado ya está registrado.\n") # Impresión de un mensaje.
-                self.correo_electronico_registrado = True
-                
-                while True:
-                    print("- Seleccione una de las siguientes opciones con base en su número: \n")
-                    print(" 1-. Iniciar sesión.")
-                    print(" 2-. Ingresar otro correo.")
-                    opcion_usuario = input("\n> ")
-                    if opcion_usuario == "1" or opcion_usuario == "2":
+                self.correo_electronico_registro = validate_email(self.correo_electronico_registro).email
+                if self.correo_electronico_registro not in list(self.df["Correo Electrónico"]):
+                    parametros = {"autocorrect": False}
+                    try:
+                        respuesta = requests.get(f"https://emailvalidation.absractapi.com/v1/?api_key=e06fb4dd03594ddea485b27d1ade4cc1&email={self.correo_electronico_registro}", params = parametros)
+                        if respuesta.json()["deliverability"] == "DELIVERABLE":
+                            print()
+                            break
+                        print("El correo electrónico ingresado no es válido. Inténtelo de nuevo.\n")
+                    except:
+                        self.problema_verificacion_correo = True
+                        print("\nHubo un problema al verificar la deliverabilidad del correo electrónico ingresado. Lamentamos las molestias y esperamos que el problema se solucione más tarde.")
                         break
-                    print("La opción ingresada no es válida. Inténtelo de nuevo.\n")
 
-                if opcion_usuario == "1":
-                    break
-                print()
+                else:
+                    print("El correo electrónico ingresado ya está registrado.\n") # Impresión de un mensaje.
+                    self.correo_electronico_registrado = True
+                    while True:
+                        print("- Seleccione una de las siguientes opciones con base en su número: \n")
+                        print(" 1-. Iniciar sesión.")
+                        print(" 2-. Ingresar otro correo.")
+                        opcion_usuario = input("\n> ")
+                        if opcion_usuario == "1" or opcion_usuario == "2":
+                            break
+                        print("La opción ingresada no es válida. Inténtelo de nuevo.\n")
+
+                    if opcion_usuario == "1":
+                        break
+                    print()                
             except EmailNotValidError: # Si no es válido el correo electrónico, ocurre un error.
-                print("El correo electrónico ingresado no es válido. Inténtelo de nuevo.\n") # Impresión de un mensaje.
+                print("El formato del correo electrónico ingresado no es válido. Inténtelo de nuevo.\n") # Impresión de un mensaje.
 
-        if not self.correo_electronico_registrado:
-            print(" - Elija una contraseña para su cuenta.") # Impresión de un mensaje.
+        if not self.problema_verificacion_correo:
+            if not self.correo_electronico_registrado:
+                print(" - Elija una contraseña para su cuenta.") # Impresión de un mensaje.
 
-            print("  - La contraseña debe incluir: ") # Impresión de un mensaje.
-            print("   - Al menos ocho caracteres.") # Impresión de un mensaje.
-            print("   - Al menos una letra y una letra mayúscula.") # Impresión de un mensaje.
-            print("   - Al menos un número.") # Impresión de un mensaje.
-            print("   - Al menos un caracter que no sea una letra ni un número.") # Impresión de un mensaje.
-            print("  - Además: ") # Impresión de un mensaje.
-            print("   - No debe incluir espacios y letras acentuadas.") # Impresión de un mensaje.
-            print("   - No puede ser idéntica a la dirección de correo electrónico.\n") # Impresión de un mensaje.
+                print("  - La contraseña debe incluir: ") # Impresión de un mensaje.
+                print("   - Al menos ocho caracteres.") # Impresión de un mensaje.
+                print("   - Al menos una letra y una letra mayúscula.") # Impresión de un mensaje.
+                print("   - Al menos un número.") # Impresión de un mensaje.
+                print("   - Al menos un caracter que no sea una letra ni un número.") # Impresión de un mensaje.
+                print("  - Además: ") # Impresión de un mensaje.
+                print("   - No debe incluir espacios y letras acentuadas.") # Impresión de un mensaje.
+                print("   - No puede ser idéntica a la dirección de correo electrónico.\n") # Impresión de un mensaje.
 
-            while True: # Ciclo infinito para evaluar si la contraseña ingresada por el usuario es válida.
-                contraseña_usuario = input(" - Contraseña: > ") # Se solicita al usuario ingresar una contraseña.
-                # Se remueven los espacios en blanco encontrados al inicio y al final del string de la contraseña.
-                contraseña_usuario = contraseña_usuario.strip()
-                regex = r"^(?=.*[a-zA-Z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s])(?!.*[áéíóúüñ\s]).{8,}$" # Regular expression para verificar que la contraseña cumpla con las condiciones mencionadas.
-                if re.match(regex, contraseña_usuario) and contraseña_usuario != correo_electronico_usuario: #Si la contraseña cumple con las condiciones mencionadas, entonces:
-                    break # Termina el ciclo.
-                print("La contraseña ingresada no cumple con las especificaciones mencionadas. Inténtelo de nuevo.\n") # Impresión de un mensaje.
+                while True: # Ciclo infinito para evaluar si la contraseña ingresada por el usuario es válida.
+                    contraseña_usuario = input(" - Contraseña: > ") # Se solicita al usuario ingresar una contraseña.
+                    # Se remueven los espacios en blanco encontrados al inicio y al final del string de la contraseña.
+                    contraseña_usuario = contraseña_usuario.strip()
+                    regex = r"^(?=.*[a-zA-Z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s])(?!.*[áéíóúüñ\s]).{8,}$" # Regular expression para verificar que la contraseña cumpla con las condiciones mencionadas.
+                    if re.match(regex, contraseña_usuario) and contraseña_usuario != self.correo_electronico_registro: #Si la contraseña cumple con las condiciones mencionadas, entonces:
+                        break # Termina el ciclo.
+                    print("La contraseña ingresada no cumple con las especificaciones mencionadas. Inténtelo de nuevo.\n") # Impresión de un mensaje.
 
-            # Almacenar la información del usuario registrado en un diccionario para su posterior carga en el archivo csv de los usuarios.
-            informacion_usuario = {
-                "Nombre(s)": [nombre_usuario], # Nombre(s).
-                "Primer Apellido": [primer_apellido_usuario], # Primer apellido.
-                "Segundo Apellido": [segundo_apellido_usuario], # Segundo apellido.
-                "Número de Teléfono": [numero_telefono_usuario], # Número de teléfono.
-                "Correo Electrónico": [correo_electronico_usuario], # Correo electrónico.
-                "Contraseña": [contraseña_usuario] # Contraseña.
-                }
-            
-            df_informacion_usuario = pd.DataFrame(informacion_usuario, dtype = str) # Convertir el diccionario con la información del usuario registrado a un dataframe.
-            # Se crea un nuevo dataframe concatenando el dataframe que contiene la información del usuario registrado con el dataframe del csv de los usuarios.
-            df_modificado = pd.concat([self.df, df_informacion_usuario], ignore_index = True) 
-            df_modificado.reset_index() # Se resetean los index del nuevo dataframe.
-            df_modificado.to_csv("usuarios.csv", index = None) # Se guarda el nuevo dataframe en el archivo csv de los usuarios (se sobrescribe el contenido).
-            self.df = pd.read_csv("usuarios.csv", dtype = str) # Se vuelve a leer el contenido del archivo csv de los usuarios.
+                self.enviar_codigo_verificacion()
+                print(f"\nPara terminar de crear su cuenta, deberá ingresar un código de 6 dígitos con el fin de verificarla. Este código se ha enviado a {self.correo_electronico_registro}.\n")
+                while True:
+                    print("- Seleccione una de las siguientes opciones con base en su número:\n")
+                    print(" 1-. Ingresar el código de verificación.")
+                    print(" 2-. Enviar otro código si no ha recibido el correo electrónico.")
+                    opcion_usuario = input("\n> ")
+                    if opcion_usuario == "1":
+                        break
+                    elif opcion_usuario == "2":
+                        self.intento_envio_codigo_verificacion = True
+                        self.enviar_codigo_verificacion()
+                    else:
+                        print("La opción ingresada no es válida. Inténtelo de nuevo.\n")     
+                    
+                    if opcion_usuario == "1":
+                        break
 
-            print("\nEl registro ha sido exitoso.\n") # Impresión de un mensaje.
+                while True:
+                    codigo_verificacion_usuario = input((f"\n - Ingrese el código para verificar su cuenta: > "))
+                    if codigo_verificacion_usuario == self.codigo_verificacion:
+                        break
+                    print("El código de verificación ingresado no es válido. Inténtelo de nuevo.")
 
-            self.opciones_post_crear_cuenta() # Se muestran las opciones que puede elegir el usuario después de haber creado su cuenta.
-        else:
-            self.iniciar_sesion()
+                # Almacenar la información del usuario registrado en un diccionario para su posterior carga en el archivo csv de los usuarios.
+                informacion_usuario = {
+                    "Nombre(s)": [nombre_usuario], # Nombre(s).
+                    "Primer Apellido": [primer_apellido_usuario], # Primer apellido.
+                    "Segundo Apellido": [segundo_apellido_usuario], # Segundo apellido.
+                    "Número de Teléfono": [numero_telefono_usuario], # Número de teléfono.
+                    "Correo Electrónico": [self.correo_electronico_registro], # Correo electrónico.
+                    "Contraseña": [contraseña_usuario] # Contraseña.
+                    }
+                
+                df_informacion_usuario = pd.DataFrame(informacion_usuario, dtype = str) # Convertir el diccionario con la información del usuario registrado a un dataframe.
+                # Se crea un nuevo dataframe concatenando el dataframe que contiene la información del usuario registrado con el dataframe del csv de los usuarios.
+                df_modificado = pd.concat([self.df, df_informacion_usuario], ignore_index = True) 
+                df_modificado.reset_index() # Se resetean los index del nuevo dataframe.
+                df_modificado.to_csv("usuarios.csv", index = None) # Se guarda el nuevo dataframe en el archivo csv de los usuarios (se sobrescribe el contenido).
+                self.df = pd.read_csv("usuarios.csv", dtype = str) # Se vuelve a leer el contenido del archivo csv de los usuarios.
+
+                print("\nSu cuenta ha sido creada exitosamente.\n") # Impresión de un mensaje.
+
+                self.opciones_post_crear_cuenta() # Se muestran las opciones que puede elegir el usuario después de haber creado su cuenta.
+            else:
+                self.iniciar_sesion()
         
 
     def proceso_inicio_sesion(self):
@@ -280,7 +440,7 @@ class PedalRide_Rentals: # Creación de la clase.
                 self.contraseña_usuario = None
                 self.menu_acceso()                
             case "5":
-                print(f"\nGracias {self.nombre_usuario} por usar nuestro sistema..")
+                print(f"\nGracias {self.nombre_usuario} por usar nuestro sistema.")
             case _:
                 print("La opción ingresada no es válida. Inténtelo de nuevo.\n")
                 self.opciones_menu_inicio()
@@ -343,6 +503,138 @@ class PedalRide_Rentals: # Creación de la clase.
                 self.opciones_cancelar_reservaciones()
 
 
+    def enviar_correo_cancelacion(self):
+        variables_mensaje_cancelacion = [self.nombre_usuario, self.numero_reservacion_cancelar]
+
+        mensaje_cancelacion = EmailMessage()
+        mensaje_cancelacion["From"] = dc.correo_remitente
+        mensaje_cancelacion["To"] = self.correo_electronico_usuario
+        mensaje_cancelacion["Subject"] = f"PedalRide Rentals - Cancelación de Reservación de Bicicleta: N.º {self.numero_reservacion_cancelar}"
+
+        cuerpo_texto_plano = """
+        PedalRide Rentals
+
+        
+        Estimado(a) {}:
+
+        Le informamos que su reservación con número {} ha sido cancelada exitosamente.
+        Se le reembolsará el monto total pagado en las próximas 24 horas a su método de pago original.
+        Agradecemos su comprensión y esperamos poder atenderle en otra ocasión.
+
+        
+        ¿Tienes dudas?
+        Contáctanos a través de nuestro correo: pedalriderentals@gmail.com
+        """
+
+        mensaje_cancelacion.set_content(cuerpo_texto_plano.format(*variables_mensaje_cancelacion))
+
+        cuerpo_html = """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <link rel="preconnect" href="https://fonts.googleapis.com">
+            <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+            <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital@0;1&display=swap" rel="stylesheet">
+            <style>
+                body {{
+                    font-family: "Montserrat", sans-serif;
+                    margin: 0;
+                    padding: 0;
+                    line-height: 1.6;
+                    color: #313030;
+                }}
+
+                .container {{
+                    max-width: 600px;
+                    margin: auto;
+                    background: white;
+                    padding: 20px;
+                }}
+
+                .header {{
+                    background-color: #414141;
+                    color: white;
+                    text-align: center;
+                    padding: 40px;
+                    font-size: 40px;
+                    font-weight: bold;
+                }}
+
+                .divider {{
+                    border-top: 2px solid #dbdbdb;
+                    margin: 20px 0;
+                }}
+
+                .help-text {{
+                    text-align: center;
+                    font-size: 18px;
+                    margin: 10px 0;
+                    color: #505050;
+                }}
+
+                .contact-text {{
+                    text-align: center;
+                    font-size: 16px;
+                    color: #505050;
+                }}
+
+                .contact-link a {{
+                    color: #007BFF;
+                    text-decoration: none;
+                }}
+
+                h3 {{
+                    font-size: 25px;
+                    text-align: center;
+                    margin: 20px 0;
+                }}
+
+                p {{
+                    text-align: justify;
+                    font-size: 18px;
+                }}
+
+                .bold {{
+                    font-weight: bold;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    PedalRide Rentals
+                </div>
+                
+                <h3>Estimado(a) {}:</h3>
+                
+                <p>
+                    Le informamos que su reservación con número <span class="bold">{}</span> ha sido cancelada exitosamente.<br>Se le reembolsará el monto total pagado en las próximas 24 horas a su método de pago original.<br>
+                    Agradecemos su comprensión y esperamos poder atenderle en otra ocasión.
+                </p>
+            
+                <div class="divider"></div>
+            
+                <div class="help-text">
+                    ¿Tienes dudas?
+                </div>
+                <div class="contact-text">
+                    Contáctanos a través de nuestro correo: <a href="mailto:pedalriderentals@gmail.com">pedalriderentals@gmail.com</a>
+                </div>
+            </div>
+        </body>
+        """
+
+        mensaje_cancelacion.add_alternative(cuerpo_html.format(*variables_mensaje_cancelacion), subtype = "html")
+
+        contexto = ssl.create_default_context()
+
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465, context = contexto) as smtp:
+            smtp.login(dc.correo_remitente, dc.contraseña_correo)
+            smtp.send_message(mensaje_cancelacion)
+
+        print("Se ha enviado un mensaje de cancelación al correo electrónico asociado a su cuenta.\n")
+
+
     def checar_reservaciones_posible_cancelacion(self):
         self.obtener_fecha_hora()
         self.numeros_reservaciones_posible_cancelacion = [reservacion_confirmada[0] for reservacion_confirmada in self.reservaciones_confirmadas if self.fecha_hora_actual_datetime <= dt.datetime.strptime(f"{reservacion_confirmada[4]} {reservacion_confirmada[5]}", "%d/%m/%Y %H:%M") - dt.timedelta(hours = 24)]
@@ -360,15 +652,15 @@ class PedalRide_Rentals: # Creación de la clase.
 
             while True:
                 try:
-                    numero_reservacion_usuario = int(input("\n- Ingrese el número de la reservación que desee cancelar: > "))
-                    if numero_reservacion_usuario in self.numeros_reservaciones_posible_cancelacion:
+                    self.numero_reservacion_cancelar = int(input("\n- Ingrese el número de la reservación que desee cancelar: > "))
+                    if self.numero_reservacion_cancelar in self.numeros_reservaciones_posible_cancelacion:
                         break
                     print("No se ha encontrado una reservación que se pueda cancelar con ese número asignado. Inténtelo de nuevo.")
                 except ValueError:
                     print("El número de reservación ingresado no es válido. Inténtelo de nuevo.")
 
-            self.numeros_reservacion_disponibles.add(numero_reservacion_usuario)
-            index_reservacion = self.df_reservaciones.loc[self.df_reservaciones["Número de Reservación"] == numero_reservacion_usuario].index
+            self.numeros_reservacion_disponibles.add(self.numero_reservacion_cancelar)
+            index_reservacion = self.df_reservaciones.loc[self.df_reservaciones["Número de Reservación"] == self.numero_reservacion_cancelar].index
             self.df_reservaciones.drop(index_reservacion, inplace = True)
             self.df_reservaciones.to_csv("reservaciones.csv", index = None)
             self.df_reservaciones = pd.read_csv("reservaciones.csv", dtype = {
@@ -386,7 +678,9 @@ class PedalRide_Rentals: # Creación de la clase.
             })
 
             print("\nLa reservación se ha cancelado.")
-            print("Se ha enviado un mensaje de cancelación al correo electrónico asociado a su cuenta.\n")
+            
+            self.enviar_correo_cancelacion()
+
             self.checar_reservaciones_confirmadas()
             self.checar_reservaciones_posible_cancelacion()
         else:
@@ -432,9 +726,9 @@ class PedalRide_Rentals: # Creación de la clase.
     def proceso_mostrar_reservaciones(self):
         self.checar_reservaciones_confirmadas()
         if self.reservaciones_confirmadas:
-            print("| N.º de Reservación |    Fecha    |    Horario    | N.º de Bicicleta |     Tipo de Bicicleta     |  Costo  |")
+            print("| N.º de Reservación |    Fecha    |    Horario    |     Tipo de Bicicleta     | N.º de Bicicleta |   Costo   |")
             for reservacion_confirmada in self.reservaciones_confirmadas:
-                print("\t", reservacion_confirmada[0], "\t      ", reservacion_confirmada[4], "  ", f"{reservacion_confirmada[5]} - {reservacion_confirmada[6]}", "\t   ", reservacion_confirmada[7], "\t ", reservacion_confirmada[8], "\t    ", reservacion_confirmada[9])
+                print("\t", reservacion_confirmada[0], "\t      ", reservacion_confirmada[4], "  ", f"{reservacion_confirmada[5]} - {reservacion_confirmada[6]}", "   ", reservacion_confirmada[8], "\t       ", reservacion_confirmada[7], "\t     ", reservacion_confirmada[9])
         else:
             print(" - No tiene ninguna reservación confirmada.")
         print()
@@ -475,6 +769,154 @@ class PedalRide_Rentals: # Creación de la clase.
                 self.opciones_hacer_reservaciones()
 
 
+    def enviar_correo_confirmacion(self):
+        variables_mensaje_confirmacion = [self.nombre_usuario, self.numero_reservacion, self.nombre_usuario, self.fecha_reserva, 
+                            self.horario_reserva, self.reserva_bicicleta, self.numero_bicicleta, self.costo_total_reserva]
+
+        mensaje_confirmacion = EmailMessage()
+        mensaje_confirmacion["From"] = dc.correo_remitente
+        mensaje_confirmacion["To"] = self.correo_electronico_usuario
+        mensaje_confirmacion["Subject"] = f"PedalRide Rentals - Confirmación de Reservación de Bicicleta: N.º {self.numero_reservacion}"
+
+        cuerpo_texto_plano = """
+        PedalRide Rentals
+
+        
+        Hola {}:
+
+        Nos complace confirmar su reservación de bicicleta. A continuación, encontrará los detalles de su reservación:
+
+        Número de Reservación: {}
+        Nombre: {}
+        Fecha: {}
+        Horario: {}
+        Tipo de Bicicleta: {}
+        Número de Bicicleta: {}
+        Costo de la Reservación: {}
+
+        ¡Gracias por reservar con nosotros y esperamos que disfrute su paseo!
+
+        
+        ¿Tienes dudas?
+        Contáctanos a través de nuestro correo: pedalriderentals@gmail.com
+        """
+
+        mensaje_confirmacion.set_content(cuerpo_texto_plano.format(*variables_mensaje_confirmacion))
+
+        cuerpo_html = """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <link rel="preconnect" href="https://fonts.googleapis.com">
+            <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+            <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital@0;1&display=swap" rel="stylesheet">
+            <style>
+                body {{
+                    font-family: "Montserrat", sans-serif;
+                    margin: 0;
+                    padding: 0;
+                    line-height: 1.6;
+                    color: #313030;
+                }}
+
+                .container {{
+                    max-width: 600px;
+                    margin: auto;
+                    background: white;
+                    padding: 20px;
+                }}
+
+                .header {{
+                    background-color: #414141;
+                    color: white;
+                    text-align: center;
+                    padding: 40px;
+                    font-size: 40px;
+                    font-weight: bold;
+                }}
+
+                .divider {{
+                    border-top: 2px solid #dbdbdb;
+                    margin: 20px 0;
+                }}
+
+                .help-text {{
+                    text-align: center;
+                    font-size: 18px;
+                    margin: 10px 0;
+                    color: #505050;
+                }}
+
+                .contact-text {{
+                    text-align: center;
+                    font-size: 16px;
+                    color: #505050;
+                }}
+
+                .contact-link a {{
+                    color: #007BFF;
+                    text-decoration: none;
+                }}
+
+                h3 {{
+                    font-size: 25px;
+                    text-align: center;
+                    margin: 20px 0;
+                }}
+
+                p {{
+                    text-align: justify;
+                    font-size: 18px;
+                }}
+
+                .bold {{
+                    font-weight: bold;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    PedalRide Rentals
+                </div>
+                
+                <h3>Hola {}:</h3>
+                
+                <p>
+                    Nos complace confirmar su reservación de bicicleta. A continuación, encontrará los detalles de su reservación:<br><br>
+                    <span class="bold">Número de Reservación: </span>{}<br>
+                    <span class="bold">Nombre: </span>{}<br>
+                    <span class="bold">Fecha: </span>{}<br>
+                    <span class="bold">Horario: </span>{}<br>
+                    <span class="bold">Tipo de Bicicleta: </span>{}<br>
+                    <span class="bold">Número de Bicicleta: </span>{}<br>
+                    <span class="bold">Costo de la Reservación: </span>{}<br><br>
+                    ¡Gracias por reservar con nosotros y esperamos que disfrute su paseo!
+                </p>
+            
+                <div class="divider"></div>
+            
+                <div class="help-text">
+                    ¿Tienes dudas?
+                </div>
+                <div class="contact-text">
+                    Contáctanos a través de nuestro correo: <a href="mailto:pedalriderentals@gmail.com">pedalriderentals@gmail.com</a>
+                </div>
+            </div>
+        </body>
+        """
+
+        mensaje_confirmacion.add_alternative(cuerpo_html.format(*variables_mensaje_confirmacion), subtype = "html")
+
+        contexto = ssl.create_default_context()
+
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465, context = contexto) as smtp:
+            smtp.login(dc.correo_remitente, dc.contraseña_correo)
+            smtp.send_message(mensaje_confirmacion)
+
+        print("Se ha enviado un mensaje de confirmación al correo electrónico asociado a su cuenta.\n")
+
+
     def proceso_hacer_reservaciones(self):
         self.horario_trabajo = None
         self.bicicletas_disponibles = None
@@ -496,11 +938,11 @@ class PedalRide_Rentals: # Creación de la clase.
         print("- Las reservaciones se deben realizar con al menos una hora de anticipación.\n")
 
         while True:
-            fecha_reserva = input(" - Ingrese la fecha de la reservación (Formato: DD/MM/AAAA): > ")
+            self.fecha_reserva = input(" - Ingrese la fecha de la reservación (Formato: DD/MM/AAAA): > ")
             formato_fecha = r"^\d{2}/\d{2}/\d{4}$"
-            if re.match(formato_fecha, fecha_reserva):
+            if re.match(formato_fecha, self.fecha_reserva):
                 try:
-                    fecha_reserva_datetime = dt.datetime.strptime(fecha_reserva, "%d/%m/%Y").date()
+                    fecha_reserva_datetime = dt.datetime.strptime(self.fecha_reserva, "%d/%m/%Y").date()
                     dia_reserva = fecha_reserva_datetime.day
                     mes_reserva = fecha_reserva_datetime.month
                     año_reserva = fecha_reserva_datetime.year
@@ -643,11 +1085,11 @@ class PedalRide_Rentals: # Creación de la clase.
                     break
                 print("El número de tipo de bicicleta ingresado no es válido. Inténtelo de nuevo.")
             
-            reserva_bicicleta = [*bicicletas_disponibles[opcion_usuario]][0]
+            self.reserva_bicicleta = [*bicicletas_disponibles[opcion_usuario]][0]
 
-            costo_total_reserva = f"${(horas_termino_reserva - horas_inicio_reserva) * self.bicicletas[reserva_bicicleta][2]}"
+            self.costo_total_reserva = f"${(horas_termino_reserva - horas_inicio_reserva) * self.bicicletas[self.reserva_bicicleta][2]}"
 
-            print(f"El costo total de la reservación es de {costo_total_reserva}.")
+            print(f"El costo total de la reservación es de {self.costo_total_reserva}.")
 
             self.acuerdo_precio_usuario = False
 
@@ -663,22 +1105,22 @@ class PedalRide_Rentals: # Creación de la clase.
                 self.acuerdo_precio_usuario = True
                 apellidos = f"{self.primer_apellido_usuario} {self.segundo_apellido_usuario}"
 
-                numero_reservacion = random.choice(list(self.numeros_reservacion_disponibles))
-                self.numeros_reservacion_disponibles.remove(numero_reservacion)
+                self.numero_reservacion = random.choice(list(self.numeros_reservacion_disponibles))
+                self.numeros_reservacion_disponibles.remove(self.numero_reservacion)
 
-                numero_bicicleta = random.choice(bicicletas_disponibles[opcion_usuario][reserva_bicicleta])
+                self.numero_bicicleta = random.choice(bicicletas_disponibles[opcion_usuario][self.reserva_bicicleta])
 
                 informacion_reservacion = {
-                    "Número de Reservación": [numero_reservacion],
+                    "Número de Reservación": [self.numero_reservacion],
                     "Nombre(s)": [self.nombre_usuario],
                     "Apellidos": [apellidos],
                     "Correo Electrónico": [self.correo_electronico_usuario],
-                    "Fecha de la Reservación": [fecha_reserva],
+                    "Fecha de la Reservación": [self.fecha_reserva],
                     "Hora de Inicio": [hora_inicio_reserva],
                     "Hora de Término": [hora_termino_reserva],
-                    "Número de Bicicleta": [numero_bicicleta],
-                    "Tipo de Bicicleta": [reserva_bicicleta],
-                    "Costo": [costo_total_reserva],
+                    "Número de Bicicleta": [self.numero_bicicleta],
+                    "Tipo de Bicicleta": [self.reserva_bicicleta],
+                    "Costo": [self.costo_total_reserva],
                     "Número de Teléfono": [self.numero_telefono_usuario]
                     }
                 
@@ -700,16 +1142,17 @@ class PedalRide_Rentals: # Creación de la clase.
                     "Número de Teléfono": str
                 })
 
-                horario_reserva = f"{hora_inicio_reserva} - {hora_termino_reserva}"
-
+                self.horario_reserva = f"{hora_inicio_reserva} - {hora_termino_reserva}"
                 print("Su reservación se ha realizado con éxito.")
                 print("A continuación, se muestran los detalles de su reservación:\n")
 
                 print("| N.º de Reservación |       Nombre(s)       |       Apellidos       |      Fecha      |      Horario      |")
-                print("\t", numero_reservacion, "\t\t ", self.nombre_usuario, "\t  ", apellidos, "\t", fecha_reserva, "\t  ", horario_reserva, "\n")
-                print("\t\t\t| N.º de Bicicleta |     Tipo de Bicicleta     |   Costo   |")
-                print("\t\t\t\t", numero_bicicleta, "\t       ", reserva_bicicleta, "\t   ", costo_total_reserva, "\n")
-                print("Se ha enviado un mensaje de confirmación al correo electrónico asociado a su cuenta.\n")
+                print("\t", self.numero_reservacion, "\t\t ", self.nombre_usuario, "\t  ", apellidos, "\t", self.fecha_reserva, "\t  ", self.horario_reserva, "\n")
+                print("\t\t\t|     Tipo de Bicicleta     | N.º de Bicicleta |   Costo   |")
+                print("\t\t\t   ", self.reserva_bicicleta, "\t    ", self.numero_bicicleta, "\t   ", self.costo_total_reserva, "\n")
+
+                self.enviar_correo_confirmacion()
+                
         else:
             print("No hay bicicletas disponibles para la fecha y horario elegidos.\n")
         self.opciones_hacer_reservaciones()
