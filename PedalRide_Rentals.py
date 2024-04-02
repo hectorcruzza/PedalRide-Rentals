@@ -1,4 +1,5 @@
 import pandas as pd # Importación de librería para la carga de información del sistema
+import os
 from email_validator import validate_email, EmailNotValidError # Importación de librería para la verificación de correos electrónicos
 import re # Importación de librería para la creación de regular expressions
 import datetime as dt
@@ -16,14 +17,17 @@ class PedalRide_Rentals: # Creación de la clase.
         self.bicicletas = {"Bicicleta de Ciudad": ["Urbana, práctica.", ["005", "010", "015"], 60],
                            "Bicicleta de Montaña": ["Todo terreno, ágil.", ["020", "025", "030"], 90],
                            "Bicicleta de Turismo": ["Largas distancias.", ["035", "040", "045"], 80],
-                           "Bicicleta Eléctrica": ["Eficiente, rápida.", ["050", "055", "067"], 100]} 
+                           "Bicicleta BMX": ["Aventuras increíbles.", ["050", "055", "060"], 85],
+                           "Bicicleta Eléctrica": ["Eficiente, rápida.", ["065", "067", "070"], 100]} 
         self.df = df
         self.df_reservaciones = df_reservaciones
         self.numeros_reservacion_disponibles = set(range(1, 1001))
         self.numeros_reservacion_disponibles.difference_update(set(self.df_reservaciones["Número de Reservación"]))
+        self.inicio_programa = None
         self.nombre_usuario = None
         self.primer_apellido_usuario = None
         self.segundo_apellido_usuario = None
+        self.apellidos = None
         self.numero_telefono_usuario = None
         self.correo_electronico_usuario = None
         self.contraseña_usuario = None
@@ -35,9 +39,9 @@ class PedalRide_Rentals: # Creación de la clase.
         self.horario_trabajo = None
         self.bicicletas_disponibles = None
         self.horario_trabajo = None
-        self.acuerdo_precio_usuario = None
-        print(f"\n| Fecha: {self.fecha_actual} - Hora: {self.hora_actual} |")
-        print("\n¡Bienvenido(a) al sistema de reservaciones para el servicio de alquiler de bicicletas!") # Impresión de un mensaje.
+        self.confirmacion_reservacion_usuario = None
+        self.limpiar_terminal()
+        print("¡Bienvenido(a) a PedalRide Rentals!\n") # Impresión de un mensaje.
         self.menu_acceso() # Se llama a la función del menú de acceso.
 
 
@@ -45,6 +49,10 @@ class PedalRide_Rentals: # Creación de la clase.
         self.fecha_hora_actual_datetime = dt.datetime.now().replace(microsecond = 0)
         self.fecha_actual = self.fecha_hora_actual_datetime.strftime("%d/%m/%Y")
         self.hora_actual = self.fecha_hora_actual_datetime.strftime("%H:%M")
+
+
+    def limpiar_terminal(self):
+        os.system("cls" if os.name == "nt" else "clear")
 
 
     def opciones_menu_acceso(self): # Función que muestra las opciones del menú de acceso a fin de que el usuario elija una.
@@ -59,14 +67,19 @@ class PedalRide_Rentals: # Creación de la clase.
             case "2": # En caso de que haya ingresado el número 2:
                 self.crear_cuenta() # Accederá a la sección para crear una cuenta.
             case "3":
-                print("\nHa abandonado el sistema.")
+                self.limpiar_terminal()
+                print("Ha abandonado el sistema.\n")
             case _:
                 print("La opción ingresada no es válida. Inténtelo de nuevo.\n")
                 self.opciones_menu_acceso()
 
 
     def menu_acceso(self): # Función que corresponde al menú de acceso.
-        print("\nSección: Menú de acceso.") # Impresión de un mensaje.
+        if self.inicio_programa:
+            self.limpiar_terminal()
+        else:
+            self.inicio_programa = True
+        print("Sección: Menú de acceso.") # Impresión de un mensaje.
         self.opciones_menu_acceso() # Se llama a la función correspondiente para mostrar al usuario las opciones a elegir en el menú de acceso.
 
 
@@ -76,7 +89,7 @@ class PedalRide_Rentals: # Creación de la clase.
             print(" 1-. ¿Quiere volver a intentar iniciar sesión?") # Impresión de un mensaje.
         else:
             print(" 1-. ¿Quiere iniciar sesión?") # Impresión de un mensaje.
-        print(" 2-. ¿Desea volver al menú de acceso?") # Impresión de un mensaje.
+        print(" 2-. ¿Desea regresar al menú de acceso?") # Impresión de un mensaje.
 
         opcion_usuario = input("\n> ") # Pedir al usuario que elija una opción.
         match opcion_usuario: # Un switch case que evalua el input del usuario.
@@ -104,9 +117,9 @@ class PedalRide_Rentals: # Creación de la clase.
         PedalRide Rentals
 
         
-        Verifica tu cuenta
+        Verifique su cuenta
         
-        Ingresa el siguiente código para verificar tu cuenta:
+        Ingrese el siguiente código para verificar su cuenta:
 
         {}
 
@@ -139,7 +152,7 @@ class PedalRide_Rentals: # Creación de la clase.
                 }}
 
                 .header {{
-                    background-color: #414141;
+                    background-color: #004AAD;
                     color: white;
                     text-align: center;
                     padding: 40px;
@@ -183,12 +196,12 @@ class PedalRide_Rentals: # Creación de la clase.
                     PedalRide Rentals
                 </div>
                 
-                <h3>Verifica tu cuenta</h3>
+                <h3>Verifique su cuenta</h3>
                 
                 <div class="divider"></div>
 
                 <p>
-                    Ingresa el siguiente código para verificar tu cuenta:
+                    Ingrese el siguiente código para verificar su cuenta:
                 </p>
 
                 <div class="code">
@@ -216,8 +229,9 @@ class PedalRide_Rentals: # Creación de la clase.
 
 
     def crear_cuenta(self): # Función que permite al usuario crear una cuenta.
+        self.limpiar_terminal()
         self.inicio_sesion_exitoso = None
-        print("\nSección: Crear cuenta.") # Impresión de un mensaje.
+        print("Sección: Crear cuenta.") # Impresión de un mensaje.
         print("- Ingrese sus datos personales en los campos correspondientes:\n") # Impresión de un mensaje.
 
         while True: # Ciclo infinito para evaluar si el/los nombre(s) ingresado(s) por el usuario es válido.
@@ -288,14 +302,14 @@ class PedalRide_Rentals: # Creación de la clase.
                 if self.correo_electronico_registro not in list(self.df["Correo Electrónico"]):
                     parametros = {"autocorrect": False}
                     try:
-                        respuesta = requests.get(f"https://emailvalidation.absractapi.com/v1/?api_key=e06fb4dd03594ddea485b27d1ade4cc1&email={self.correo_electronico_registro}", params = parametros)
+                        respuesta = requests.get(f"https://emailvalidation.abstractapi.com/v1/?api_key=e06fb4dd03594ddea485b27d1ade4cc1&email={self.correo_electronico_registro}", params = parametros)
                         if respuesta.json()["deliverability"] == "DELIVERABLE":
                             print()
                             break
                         print("El correo electrónico ingresado no es válido. Inténtelo de nuevo.\n")
                     except:
                         self.problema_verificacion_correo = True
-                        print("\nHubo un problema al verificar la deliverabilidad del correo electrónico ingresado. Lamentamos las molestias y esperamos que el problema se solucione más tarde.")
+                        print("Hubo un problema de nuestro lado. Lamentamos las molestias y esperamos que el inconveniente se solucione más tarde.")
                         break
 
                 else:
@@ -400,6 +414,7 @@ class PedalRide_Rentals: # Creación de la clase.
                     self.nombre_usuario = informacion_usuario_logeado[0]
                     self.primer_apellido_usuario = informacion_usuario_logeado[1]
                     self.segundo_apellido_usuario = informacion_usuario_logeado[2]
+                    self.apellidos = f"{self.primer_apellido_usuario} {self.segundo_apellido_usuario}"
                     self.numero_telefono_usuario = informacion_usuario_logeado[3]
                     self.correo_electronico_usuario = informacion_usuario_logeado[4]
                     break # Termina el ciclo.
@@ -412,7 +427,8 @@ class PedalRide_Rentals: # Creación de la clase.
 
 
     def iniciar_sesion(self): # Función que permite al usuario iniciar sesión.
-        print("\nSección: Iniciar sesión.")
+        self.limpiar_terminal()
+        print("Sección: Iniciar sesión.")
         self.proceso_inicio_sesion()
 
 
@@ -435,20 +451,23 @@ class PedalRide_Rentals: # Creación de la clase.
                 self.nombre_usuario = None
                 self.primer_apellido_usuario = None
                 self.segundo_apellido_usuario = None
+                self.apellidos = None
                 self.numero_telefono_usuario = None
                 self.correo_electronico_usuario = None
                 self.contraseña_usuario = None
                 self.menu_acceso()                
             case "5":
-                print(f"\nGracias {self.nombre_usuario} por usar nuestro sistema.")
+                self.limpiar_terminal()
+                print("Ha abandonado el sistema.\n")
             case _:
                 print("La opción ingresada no es válida. Inténtelo de nuevo.\n")
                 self.opciones_menu_inicio()
 
 
     def menu_inicio(self): # Función que corresponde al menú de inicio.
+        self.limpiar_terminal()
         self.obtener_fecha_hora()
-        print(f"\n| Fecha: {self.fecha_actual} - Hora: {self.hora_actual} |")
+        print(f"| Usuario: {self.nombre_usuario} {self.apellidos} |")
         print("\nSección: Menú de inicio.") # Impresión de un mensaje.
         self.opciones_menu_inicio()
 
@@ -466,9 +485,11 @@ class PedalRide_Rentals: # Creación de la clase.
 
 
     def mi_perfil(self):
+        self.limpiar_terminal()
+        print(f"| Usuario: {self.nombre_usuario} {self.apellidos} |")
         print("\nSección: Mi perfil.") # Impresión de un mensaje.
         print("- Información personal:\n")
-        print(f" - Nombre(s): {self.nombre_usuario}")
+        print(f" - Nombre: {self.nombre_usuario}")
         print(f" - Primer apellido: {self.primer_apellido_usuario}")
         print(f" - Segundo apellido: {self.segundo_apellido_usuario}")
         print(f" - Número de teléfono: {self.numero_telefono_usuario}")
@@ -489,7 +510,7 @@ class PedalRide_Rentals: # Creación de la clase.
         opcion_usuario = input("\n> ") # Pedir al usuario que elija una opción.
         match opcion_usuario: # Un switch case que evalua el input del usuario.
             case "1" if self.numeros_reservaciones_posible_cancelacion and self.reservaciones_posible_cancelacion == None: # En caso de que haya ingresado el número 1:
-                self.proceso_cancelar_reservaciones()
+                self.cancelar_reservaciones()
             case "1" if not self.numeros_reservaciones_posible_cancelacion or self.reservaciones_posible_cancelacion != None:
                 self.mis_reservaciones()
             case "2" if self.numeros_reservaciones_posible_cancelacion and self.reservaciones_posible_cancelacion == None: # En caso de que haya ingresado el número 2:
@@ -522,8 +543,8 @@ class PedalRide_Rentals: # Creación de la clase.
         Agradecemos su comprensión y esperamos poder atenderle en otra ocasión.
 
         
-        ¿Tienes dudas?
-        Contáctanos a través de nuestro correo: pedalriderentals@gmail.com
+        ¿Tiene dudas?
+        Contáctenos a través de nuestro correo: pedalriderentals@gmail.com
         """
 
         mensaje_cancelacion.set_content(cuerpo_texto_plano.format(*variables_mensaje_cancelacion))
@@ -552,7 +573,7 @@ class PedalRide_Rentals: # Creación de la clase.
                 }}
 
                 .header {{
-                    background-color: #414141;
+                    background-color: #004AAD;
                     color: white;
                     text-align: center;
                     padding: 40px;
@@ -615,10 +636,10 @@ class PedalRide_Rentals: # Creación de la clase.
                 <div class="divider"></div>
             
                 <div class="help-text">
-                    ¿Tienes dudas?
+                    ¿Tiene dudas?
                 </div>
                 <div class="contact-text">
-                    Contáctanos a través de nuestro correo: <a href="mailto:pedalriderentals@gmail.com">pedalriderentals@gmail.com</a>
+                    Contáctenos a través de nuestro correo: <a href="mailto:pedalriderentals@gmail.com">pedalriderentals@gmail.com</a>
                 </div>
             </div>
         </body>
@@ -640,15 +661,15 @@ class PedalRide_Rentals: # Creación de la clase.
         self.numeros_reservaciones_posible_cancelacion = [reservacion_confirmada[0] for reservacion_confirmada in self.reservaciones_confirmadas if self.fecha_hora_actual_datetime <= dt.datetime.strptime(f"{reservacion_confirmada[4]} {reservacion_confirmada[5]}", "%d/%m/%Y %H:%M") - dt.timedelta(hours = 24)]
 
 
-    def proceso_cancelar_reservaciones(self):
+    def cancelar_reservaciones(self):
         self.checar_reservaciones_confirmadas()
         self.checar_reservaciones_posible_cancelacion()
         self.reservaciones_posible_cancelacion = None
         if self.numeros_reservaciones_posible_cancelacion:
-            print("\nLas siguientes reservaciones pueden ser canceladas:\n")
+            print("\nLas siguientes reservaciones pueden ser canceladas:\n" if len(self.numeros_reservaciones_posible_cancelacion) > 1 else "\nLa siguiente reservación puede ser cancelada:\n")
             print("| N.º de Reservación |")
             for numero_reservacion in self.numeros_reservaciones_posible_cancelacion:
-                print(f"\t {numero_reservacion}")
+                print(f"{numero_reservacion:^22}")
 
             while True:
                 try:
@@ -687,11 +708,6 @@ class PedalRide_Rentals: # Creación de la clase.
             self.reservaciones_posible_cancelacion = False
             print("\nNinguna reservación puede ser cancelada.\n")
         self.opciones_cancelar_reservaciones()
-
-
-    def cancelar_reservaciones(self):
-        print("\nSección: Cancelar reservación.")
-        self.proceso_cancelar_reservaciones()
         
 
     def opciones_mis_reservaciones(self):
@@ -726,16 +742,18 @@ class PedalRide_Rentals: # Creación de la clase.
     def proceso_mostrar_reservaciones(self):
         self.checar_reservaciones_confirmadas()
         if self.reservaciones_confirmadas:
-            print("| N.º de Reservación |    Fecha    |    Horario    |     Tipo de Bicicleta     | N.º de Bicicleta |   Costo   |")
+            print("| N.º de Reservación |     Fecha     |     Horario     |     Tipo de Bicicleta     | N.º de Bicicleta |   Costo   |")
             for reservacion_confirmada in self.reservaciones_confirmadas:
-                print("\t", reservacion_confirmada[0], "\t      ", reservacion_confirmada[4], "  ", f"{reservacion_confirmada[5]} - {reservacion_confirmada[6]}", "   ", reservacion_confirmada[8], "\t       ", reservacion_confirmada[7], "\t     ", reservacion_confirmada[9])
+                print(f"{reservacion_confirmada[0]:^22}{reservacion_confirmada[4]:^15}{f"{reservacion_confirmada[5]} - {reservacion_confirmada[6]}":^20}{f"   {reservacion_confirmada[8]}":<25}{reservacion_confirmada[7]:^24}{reservacion_confirmada[9]:^5}")
         else:
             print(" - No tiene ninguna reservación confirmada.")
         print()
 
 
     def mis_reservaciones(self):
+        self.limpiar_terminal()
         self.obtener_fecha_hora()
+        print(f"| Usuario: {self.nombre_usuario} {self.apellidos} |")
         print("\nSección: Mis reservaciones.")
         print("- Reservaciones confirmadas:\n")
         self.proceso_mostrar_reservaciones()
@@ -744,10 +762,10 @@ class PedalRide_Rentals: # Creación de la clase.
 
     def opciones_hacer_reservaciones(self):
         print("- Seleccione una de las siguientes opciones con base en su número: \n") # Impresión de un mensaje.
-        if self.horario_trabajo != None or self.bicicletas_disponibles == False or self.acuerdo_precio_usuario == False:
+        if self.horario_trabajo != None or self.bicicletas_disponibles == False or self.confirmacion_reservacion_usuario == False:
             if self.horario_trabajo != None or self.bicicletas_disponibles == False :
                 print(" 1-. Cambiar la fecha y horario de la reservación.") # Impresión de un mensaje.
-            elif self.acuerdo_precio_usuario == False:   
+            elif self.confirmacion_reservacion_usuario == False:   
                 print(" 1-. Hacer una reservación.") # Impresión de un mensaje.
             print(" 2-. Volver al menú de inicio.") # Impresión de un mensaje.        
         else:
@@ -758,11 +776,11 @@ class PedalRide_Rentals: # Creación de la clase.
         match opcion_usuario: # Un switch case que evalua el input del usuario.
             case "1": # En caso de que haya ingresado el número 1:
                 self.proceso_hacer_reservaciones() # Accederá a la sección para iniciar sesión.
-            case "2" if self.horario_trabajo != None or self.bicicletas_disponibles == False or self.acuerdo_precio_usuario == False: # En caso de que haya ingresado el número 2:
+            case "2" if self.horario_trabajo != None or self.bicicletas_disponibles == False or self.confirmacion_reservacion_usuario == False: # En caso de que haya ingresado el número 2:
                 self.menu_inicio()
-            case "2" if self.acuerdo_precio_usuario:
+            case "2" if self.confirmacion_reservacion_usuario:
                 self.mis_reservaciones()
-            case "3" if self.acuerdo_precio_usuario:
+            case "3" if self.confirmacion_reservacion_usuario:
                 self.menu_inicio()
             case _:
                 print("La opción ingresada no es válida. Inténtelo de nuevo.\n")
@@ -792,13 +810,13 @@ class PedalRide_Rentals: # Creación de la clase.
         Horario: {}
         Tipo de Bicicleta: {}
         Número de Bicicleta: {}
-        Costo de la Reservación: {}
+        Costo: {}
 
         ¡Gracias por reservar con nosotros y esperamos que disfrute su paseo!
 
         
-        ¿Tienes dudas?
-        Contáctanos a través de nuestro correo: pedalriderentals@gmail.com
+        ¿Tiene dudas?
+        Contáctenos a través de nuestro correo: pedalriderentals@gmail.com
         """
 
         mensaje_confirmacion.set_content(cuerpo_texto_plano.format(*variables_mensaje_confirmacion))
@@ -827,7 +845,7 @@ class PedalRide_Rentals: # Creación de la clase.
                 }}
 
                 .header {{
-                    background-color: #414141;
+                    background-color: #004AAD;
                     color: white;
                     text-align: center;
                     padding: 40px;
@@ -890,17 +908,17 @@ class PedalRide_Rentals: # Creación de la clase.
                     <span class="bold">Horario: </span>{}<br>
                     <span class="bold">Tipo de Bicicleta: </span>{}<br>
                     <span class="bold">Número de Bicicleta: </span>{}<br>
-                    <span class="bold">Costo de la Reservación: </span>{}<br><br>
+                    <span class="bold">Costo: </span>{}<br><br>
                     ¡Gracias por reservar con nosotros y esperamos que disfrute su paseo!
                 </p>
             
                 <div class="divider"></div>
             
                 <div class="help-text">
-                    ¿Tienes dudas?
+                    ¿Tiene dudas?
                 </div>
                 <div class="contact-text">
-                    Contáctanos a través de nuestro correo: <a href="mailto:pedalriderentals@gmail.com">pedalriderentals@gmail.com</a>
+                    Contáctenos a través de nuestro correo: <a href="mailto:pedalriderentals@gmail.com">pedalriderentals@gmail.com</a>
                 </div>
             </div>
         </body>
@@ -914,28 +932,24 @@ class PedalRide_Rentals: # Creación de la clase.
             smtp.login(dc.correo_remitente, dc.contraseña_correo)
             smtp.send_message(mensaje_confirmacion)
 
-        print("Se ha enviado un mensaje de confirmación al correo electrónico asociado a su cuenta.\n")
+        print("Se ha enviado un mensaje de confirmación, que contiene todos los detalles de su reservación, al correo electrónico asociado a su cuenta.\n")
 
 
     def proceso_hacer_reservaciones(self):
         self.horario_trabajo = None
         self.bicicletas_disponibles = None
-        self.acuerdo_precio_usuario = None
+        self.confirmacion_reservacion_usuario = None
 
         self.obtener_fecha_hora()
 
-        print(f"\n| Fecha: {self.fecha_actual} - Hora: {self.hora_actual} |\n")
         dia_actual = self.fecha_hora_actual_datetime.day
-        mes_actual = self.fecha_hora_actual_datetime.month
         año_actual = self.fecha_hora_actual_datetime.year
         horas_actual = self.fecha_hora_actual_datetime.hour
         minutos_actual = self.fecha_hora_actual_datetime.minute
 
-        print("- Nuestro horario de trabajo es de las 08:00 a las 20:00.")
-        print("- Las reservaciones se deben realizar para el año y mes en curso.")
-        print("- Las reservaciones se realizan en bloques por hora.")
-        print("- Las reservaciones pueden ser de más de una hora.")
-        print("- Las reservaciones se deben realizar con al menos una hora de anticipación.\n")
+        print("\n- Nuestro horario de trabajo es de las 08:00 a las 20:00.")
+        print("- Las reservaciones se deben realizar para el año en curso, y con al menos una hora de anticipación.")
+        print("- Las reservaciones se realizan en bloques por hora, y pueden ser de más de una hora.\n")
 
         while True:
             self.fecha_reserva = input(" - Ingrese la fecha de la reservación (Formato: DD/MM/AAAA): > ")
@@ -944,21 +958,20 @@ class PedalRide_Rentals: # Creación de la clase.
                 try:
                     fecha_reserva_datetime = dt.datetime.strptime(self.fecha_reserva, "%d/%m/%Y").date()
                     dia_reserva = fecha_reserva_datetime.day
-                    mes_reserva = fecha_reserva_datetime.month
                     año_reserva = fecha_reserva_datetime.year
-                    if año_reserva == año_actual and mes_reserva == mes_actual:
+                    if año_reserva == año_actual:
                         if dia_reserva >= dia_actual:
                             print()
                             break
                         else:
                             print("El día de la reservación ingresado no es válido. Inténtelo de nuevo.\n")
                     else:
-                        print("La fecha de la reservación ingresada no cumple con los parámetros establecidos. Inténtelo de nuevo.\n")
+                        print("La fecha de la reservación ingresada no cumple con el parámetro establecido. Inténtelo de nuevo.\n")
+                        print("- Recuerde que las reservaciones se deben realizar para el año en curso.\n")
                 except:
                     print("La fecha ingresada no es válida. Inténtelo de nuevo.\n")
             else:
                 print("El formato de la fecha ingresada no es válido. Inténtelo de nuevo.\n")
-            print("- Recuerde que las reservaciones se deben realizar para el año y mes en curso.\n")
 
         if fecha_reserva_datetime == self.fecha_hora_actual_datetime.date() and self.fecha_hora_actual_datetime.time() > dt.datetime.strptime("18:00", "%H:%M").time():
             self.horario_trabajo = False
@@ -1014,9 +1027,8 @@ class PedalRide_Rentals: # Creación de la clase.
                 print("El horario ingresado no cumple con las condiciones establecidas. Inténtelo de nuevo.\n")
                 print("Recuerde que:")
                 print("- Nuestro horario de trabajo es de las 08:00 a las 20:00.")
-                print("- Las reservaciones se realizan en bloques por hora.")
-                print("- Las reservaciones pueden ser de más de una hora.")
-                print("- Las reservaciones se deben realizar con al menos una hora de anticipación.\n")
+                print("- Las reservaciones se deben realizar con al menos una hora de anticipación.")
+                print("- Las reservaciones se realizan en bloques por hora, y pueden ser de más de una hora.\n")
 
         informacion_reservaciones = self.df_reservaciones.to_numpy()
         self.bicicletas_disponibles = False
@@ -1045,8 +1057,8 @@ class PedalRide_Rentals: # Creación de la clase.
 
         # Si hay bicicletas disponibles, entonces se muestran y sigue el proceso de la reservación.
         if self.bicicletas_disponibles:
-            print("A continuación, se muestra la lista de bicicletas disponibles en la fecha y horario elegidos:\n")
-            print("      |     Tipo de Bicicleta     |         Descripción         | Bicicletas Disponibles |   Costo por Hora   |")
+            print("En este momento, se muestra la lista de bicicletas disponibles en la fecha y horario elegidos:\n")
+            print("      |     Tipo de Bicicleta     |       Descripción       | Bicicletas Disponibles |   Costo por Hora   |")
 
         # Ciclo para mostrar las bicicletas disponibles
             
@@ -1076,7 +1088,7 @@ class PedalRide_Rentals: # Creación de la clase.
                 if cantidad_bicicletas_disponibles:
                     opcion_por_tipo_bicicleta += 1
                     bicicletas_disponibles[str(opcion_por_tipo_bicicleta)] = {tipo_bicicleta: bicicletas_disponibles_por_tipo}
-                    print("\t", f"{opcion_por_tipo_bicicleta}-. {tipo_bicicleta}", "\t", informacion_tipo_bicicleta[0], "\t\t    ", cantidad_bicicletas_disponibles, "\t\t         ", f"${informacion_tipo_bicicleta[2]}")
+                    print(f"\t {f"{opcion_por_tipo_bicicleta}-. {tipo_bicicleta}":<25}{f"     {informacion_tipo_bicicleta[0]}":<29}{cantidad_bicicletas_disponibles:^21}{f"${informacion_tipo_bicicleta[2]}":^24}")
 
             while True:
                 opcion_usuario = input("\n - Elija la bicicleta a rentar con base en su número de tipo: > ")
@@ -1085,16 +1097,19 @@ class PedalRide_Rentals: # Creación de la clase.
                     break
                 print("El número de tipo de bicicleta ingresado no es válido. Inténtelo de nuevo.")
             
+            self.horario_reserva = f"{hora_inicio_reserva} - {hora_termino_reserva}"
             self.reserva_bicicleta = [*bicicletas_disponibles[opcion_usuario]][0]
-
             self.costo_total_reserva = f"${(horas_termino_reserva - horas_inicio_reserva) * self.bicicletas[self.reserva_bicicleta][2]}"
 
-            print(f"El costo total de la reservación es de {self.costo_total_reserva}.")
+            print("A continuación, se muestran los detalles de su reservación, incluyendo el costo total de la misma:\n")
 
-            self.acuerdo_precio_usuario = False
+            print("|      Nombre      |      Apellidos      |     Fecha     |     Horario     |     Tipo de Bicicleta     |   Costo   |")
+            print(f" {self.nombre_usuario:^20}{self.apellidos:^20} {self.fecha_reserva:^14}{self.horario_reserva:^21}{self.reserva_bicicleta:^25}{self.costo_total_reserva:^15}\n")
+
+            self.confirmacion_reservacion_usuario = False
 
             while True:
-                respuesta_usuario_precio = input(" - ¿Está de acuerdo con el precio (Sí/No)? > ")
+                respuesta_usuario_precio = input(" - ¿Desea confirmar la reservación (Sí/No)? > ")
                 respuesta_usuario_precio = respuesta_usuario_precio.strip().lower()
                 if respuesta_usuario_precio == "sí" or respuesta_usuario_precio == "si" or respuesta_usuario_precio == "no":
                     print()
@@ -1102,8 +1117,7 @@ class PedalRide_Rentals: # Creación de la clase.
                 print("La respuesta ingresada no es válida. Inténtelo de nuevo.\n")
 
             if respuesta_usuario_precio == "sí" or respuesta_usuario_precio == "si":
-                self.acuerdo_precio_usuario = True
-                apellidos = f"{self.primer_apellido_usuario} {self.segundo_apellido_usuario}"
+                self.confirmacion_reservacion_usuario = True
 
                 self.numero_reservacion = random.choice(list(self.numeros_reservacion_disponibles))
                 self.numeros_reservacion_disponibles.remove(self.numero_reservacion)
@@ -1113,7 +1127,7 @@ class PedalRide_Rentals: # Creación de la clase.
                 informacion_reservacion = {
                     "Número de Reservación": [self.numero_reservacion],
                     "Nombre(s)": [self.nombre_usuario],
-                    "Apellidos": [apellidos],
+                    "Apellidos": [self.apellidos],
                     "Correo Electrónico": [self.correo_electronico_usuario],
                     "Fecha de la Reservación": [self.fecha_reserva],
                     "Hora de Inicio": [hora_inicio_reserva],
@@ -1142,24 +1156,22 @@ class PedalRide_Rentals: # Creación de la clase.
                     "Número de Teléfono": str
                 })
 
-                self.horario_reserva = f"{hora_inicio_reserva} - {hora_termino_reserva}"
                 print("Su reservación se ha realizado con éxito.")
-                print("A continuación, se muestran los detalles de su reservación:\n")
+                print("Seguidamente, se muestra el número de la reservación, así como el número de bicicleta asignado:\n")
 
-                print("| N.º de Reservación |       Nombre(s)       |       Apellidos       |      Fecha      |      Horario      |")
-                print("\t", self.numero_reservacion, "\t\t ", self.nombre_usuario, "\t  ", apellidos, "\t", self.fecha_reserva, "\t  ", self.horario_reserva, "\n")
-                print("\t\t\t|     Tipo de Bicicleta     | N.º de Bicicleta |   Costo   |")
-                print("\t\t\t   ", self.reserva_bicicleta, "\t    ", self.numero_bicicleta, "\t   ", self.costo_total_reserva, "\n")
+                print("\t\t\t   | N.º de Reservación | N.º de Bicicleta |")
+                print(f"\t\t\t   {self.numero_reservacion:^23}\t {self.numero_bicicleta}\n") 
 
                 self.enviar_correo_confirmacion()
-                
         else:
             print("No hay bicicletas disponibles para la fecha y horario elegidos.\n")
         self.opciones_hacer_reservaciones()
 
 
     def hacer_reservaciones(self):
-        print("\nSección: Hacer reservación.")
+        self.limpiar_terminal()
+        print(f"| Usuario: {self.nombre_usuario} {self.apellidos} |")
+        print("\nSección: Hacer una reservación.")
         self.proceso_hacer_reservaciones()
 
         
