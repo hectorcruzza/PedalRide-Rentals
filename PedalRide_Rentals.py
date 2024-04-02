@@ -35,7 +35,7 @@ class PedalRide_Rentals: # Creación de la clase.
         self.intento_envio_codigo_verificacion = None
         self.problema_verificacion_correo = None
         self.inicio_sesion_exitoso = None
-        self.reservaciones_posible_cancelacion = None
+        self.reservaciones_a_cancelar = None
         self.horario_trabajo = None
         self.bicicletas_disponibles = None
         self.horario_trabajo = None
@@ -499,25 +499,31 @@ class PedalRide_Rentals: # Creación de la clase.
 
 
     def opciones_cancelar_reservaciones(self):
-        print("- Seleccione una de las siguientes opciones con base en su número:\n") # Impresión de un mensaje.
-        if self.numeros_reservaciones_posible_cancelacion and self.reservaciones_posible_cancelacion == None:
-            print(" 1-. Cancelar otra reservación.")
-            print(" 2-. Ver sus reservaciones confirmadas.")
-            print(" 3-. Volver al menú de inicio.")
+        if self.numeros_reservaciones_posible_cancelacion or (not self.numeros_reservaciones_posible_cancelacion and self.reservaciones_a_cancelar == None):
+            print("- Seleccione una de las siguientes opciones con base en su número:\n")
+            if self.numeros_reservaciones_posible_cancelacion:
+                print(" 1-. Cancelar otra reservación.")
+                print(" 2-. Ver sus reservaciones confirmadas.")
+                print(" 3-. Volver al menú de inicio.")
+            elif not self.numeros_reservaciones_posible_cancelacion and self.reservaciones_a_cancelar == None:
+                print(" 1-. Ver sus reservaciones confirmadas.")
+                print(" 2-. Volver al menú de inicio.")
         else:
-            print(" 1-. Ver sus reservaciones confirmadas.")
-            print(" 2-. Volver al menú de inicio.")
+            print("- Seleccione la opción con base en su número:\n")
+            print(" 1-. Volver al menú de inicio.")
         opcion_usuario = input("\n> ") # Pedir al usuario que elija una opción.
         match opcion_usuario: # Un switch case que evalua el input del usuario.
-            case "1" if self.numeros_reservaciones_posible_cancelacion and self.reservaciones_posible_cancelacion == None: # En caso de que haya ingresado el número 1:
+            case "1" if self.numeros_reservaciones_posible_cancelacion: # En caso de que haya ingresado el número 1:
                 self.cancelar_reservaciones()
-            case "1" if not self.numeros_reservaciones_posible_cancelacion or self.reservaciones_posible_cancelacion != None:
+            case "1" if not self.numeros_reservaciones_posible_cancelacion and self.reservaciones_a_cancelar == None:
                 self.mis_reservaciones()
-            case "2" if self.numeros_reservaciones_posible_cancelacion and self.reservaciones_posible_cancelacion == None: # En caso de que haya ingresado el número 2:
-                self.mis_reservaciones()
-            case "2" if not self.numeros_reservaciones_posible_cancelacion or self.reservaciones_posible_cancelacion != None:
+            case "1" if self.reservaciones_a_cancelar == False:
                 self.menu_inicio()
-            case "3" if self.numeros_reservaciones_posible_cancelacion and self.reservaciones_posible_cancelacion == None:
+            case "2" if self.numeros_reservaciones_posible_cancelacion: # En caso de que haya ingresado el número 2:
+                self.mis_reservaciones()
+            case "2" if not self.numeros_reservaciones_posible_cancelacion and self.reservaciones_a_cancelar == None:
+                self.menu_inicio()
+            case "3" if self.numeros_reservaciones_posible_cancelacion:
                 self.menu_inicio()
             case _:
                 print("La opción ingresada no es válida. Inténtelo de nuevo.\n")
@@ -662,9 +668,9 @@ class PedalRide_Rentals: # Creación de la clase.
 
 
     def cancelar_reservaciones(self):
+        self.reservaciones_a_cancelar = None
         self.checar_reservaciones_confirmadas()
         self.checar_reservaciones_posible_cancelacion()
-        self.reservaciones_posible_cancelacion = None
         if self.numeros_reservaciones_posible_cancelacion:
             print("\nLas siguientes reservaciones pueden ser canceladas:\n" if len(self.numeros_reservaciones_posible_cancelacion) > 1 else "\nLa siguiente reservación puede ser cancelada:\n")
             print("| N.º de Reservación |")
@@ -705,7 +711,7 @@ class PedalRide_Rentals: # Creación de la clase.
             self.checar_reservaciones_confirmadas()
             self.checar_reservaciones_posible_cancelacion()
         else:
-            self.reservaciones_posible_cancelacion = False
+            self.reservaciones_a_cancelar = False
             print("\nNinguna reservación puede ser cancelada.\n")
         self.opciones_cancelar_reservaciones()
         
