@@ -106,7 +106,7 @@ class PedalRide_Rentals: # Creación de la clase.
 
     
     def enviar_codigo_verificacion(self):
-        self.codigo_verificacion = str(random.randint(100000, 999999))
+        self.codigo_verificacion = f"{random.randrange(1000000):06d}"
 
         mensaje_codigo_verificacion = EmailMessage()
         mensaje_codigo_verificacion["From"] = dc.correo_remitente
@@ -781,7 +781,7 @@ class PedalRide_Rentals: # Creación de la clase.
         opcion_usuario = input("\n> ") # Pedir al usuario que elija una opción.
         match opcion_usuario: # Un switch case que evalua el input del usuario.
             case "1": # En caso de que haya ingresado el número 1:
-                self.proceso_hacer_reservaciones() # Accederá a la sección para iniciar sesión.
+                self.hacer_reservaciones() # Accederá a la sección para iniciar sesión.
             case "2" if self.horario_trabajo != None or self.bicicletas_disponibles == False or self.confirmacion_reservacion_usuario == False: # En caso de que haya ingresado el número 2:
                 self.menu_inicio()
             case "2" if self.confirmacion_reservacion_usuario:
